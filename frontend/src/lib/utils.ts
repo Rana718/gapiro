@@ -21,9 +21,11 @@ export function formatBytes(bytes: number): string {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 }
 
-/** Format duration in ms */
+/** Format duration in ms — shows µs/ns for sub-millisecond */
 export function formatDuration(ms: number): string {
-  if (ms < 1) return '<1 ms';
+  if (ms <= 0) return '0 ms';
+  if (ms < 0.001) return `${Math.round(ms * 1_000_000)} ns`;
+  if (ms < 1) return `${Math.round(ms * 1000)} µs`;
   if (ms < 1000) return `${Math.round(ms)} ms`;
   if (ms < 60000) return `${(ms / 1000).toFixed(2)} s`;
   return `${(ms / 60000).toFixed(1)} min`;

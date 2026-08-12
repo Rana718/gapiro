@@ -23,6 +23,7 @@ export function FormatJSON(input: string): $CancellablePromise<string> {
 
 /**
  * SendRequest executes an HTTP request and returns the response with timing details.
+ * The context is provided by Wails and cancelled when the frontend calls .cancel() on the promise.
  */
 export function SendRequest(payload: $models.RequestPayload): $CancellablePromise<$models.ResponsePayload> {
     return $Call.ByID(477429584, payload);

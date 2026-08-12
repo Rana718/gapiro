@@ -1,7 +1,5 @@
 @import "tailwindcss";
 
-@custom-variant dark (&:is([data-appearance="dark"] *));
-
 @theme inline {
   --font-mono: JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --font-sans: Inter, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
@@ -9,82 +7,46 @@
   --color-*: initial;
   --color-transparent: transparent;
 
-  /* Surfaces */
-  --color-surface: #111115;
-  --color-surface-highlight: #1a1a20;
-  --color-surface-active: #252530;
-  --color-surface-inset: #0c0c0f;
+  /* Surfaces - Yaak dark */
+  --color-surface: #1a1a22;
+  --color-surface-highlight: #23232e;
+  --color-surface-active: #2c2c3a;
+  --color-surface-inset: #14141a;
 
   /* Text */
-  --color-text: #e4e4e7;
-  --color-text-subtle: #a1a1aa;
-  --color-text-subtlest: #52525b;
-  --color-placeholder: #3f3f46;
+  --color-text: #e2e2e6;
+  --color-text-subtle: #9898a8;
+  --color-text-subtlest: #5c5c6e;
+  --color-placeholder: #3e3e4e;
 
   /* Borders */
-  --color-border: #2e2e38;
-  --color-border-subtle: #232330;
-  --color-border-focus: #6366f1;
+  --color-border: #2e2e3e;
+  --color-border-subtle: #24242f;
+  --color-border-focus: #7c6ef6;
+
+  /* Primary - violet */
+  --color-primary: #7c6ef6;
+  --color-primary-hover: #9587ff;
 
   /* Semantic */
-  --color-primary: #6366f1;
-  --color-primary-hover: #818cf8;
-  --color-danger: #ef4444;
-  --color-success: #22c55e;
-  --color-warning: #f59e0b;
+  --color-danger: #e5484d;
+  --color-success: #30a46c;
+  --color-warning: #f5a623;
   --color-info: #3b82f6;
-  --color-notice: #a855f7;
+  --color-notice: #ab6ef6;
 
-  /* Methods */
-  --color-method-get: #22c55e;
-  --color-method-post: #f59e0b;
+  /* HTTP Methods */
+  --color-method-get: #30a46c;
+  --color-method-post: #f5a623;
   --color-method-put: #3b82f6;
-  --color-method-patch: #a855f7;
-  --color-method-delete: #ef4444;
+  --color-method-patch: #ab6ef6;
+  --color-method-delete: #e5484d;
   --color-method-head: #06b6d4;
-  --color-method-options: #ec4899;
+  --color-method-options: #e879a8;
 
-  /* Sizing */
   --height-xs: 1.75rem;
   --height-sm: 2rem;
   --height-md: 2.25rem;
-
-  /* Shadows */
-  --shadow: 0 4px 12px rgba(0,0,0,0.4);
-  --shadow-lg: 0 8px 24px rgba(0,0,0,0.5);
-}
-
-/* Yaak's native palette. These must follow @theme so appearance overrides win. */
-[data-appearance="dark"] {
-  --color-surface: hsl(244 23% 14%);
-  --color-surface-highlight: hsl(244 23% 20%);
-  --color-surface-active: hsl(244 23% 23%);
-  --color-surface-inset: hsl(244 23% 11%);
-  --color-text: hsl(245 23% 85%);
-  --color-text-subtle: hsl(245 18% 58%);
-  --color-text-subtlest: hsl(245 18% 45%);
-  --color-placeholder: hsl(245 18% 37%);
-  --color-border: hsl(244 23% 25%);
-  --color-border-subtle: hsl(244 23% 21%);
-  --color-border-focus: hsl(266 100% 79%);
-  --color-primary: hsl(266 100% 79%);
-  --color-primary-hover: hsl(266 100% 85%);
-}
-
-[data-appearance="light"] {
-  --color-surface: hsl(0 0% 100%);
-  --color-surface-highlight: hsl(218 24% 92%);
-  --color-surface-active: hsl(217 25% 89%);
-  --color-surface-inset: hsl(220 20% 98%);
-  --color-text: hsl(217 24% 10%);
-  --color-text-subtle: hsl(217 24% 40%);
-  --color-text-subtlest: hsl(217 24% 58%);
-  --color-placeholder: hsl(217 20% 67%);
-  --color-border: hsl(217 22% 90%);
-  --color-border-subtle: hsl(217 22% 88%);
-  --color-border-focus: hsl(266 100% 60%);
-  --color-primary: hsl(266 100% 60%);
-  --color-primary-hover: hsl(266 100% 52%);
 }
 
 @layer base {
@@ -103,19 +65,21 @@
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* Prevent layout thrashing from scrollbar appearance */
+    overflow: hidden;
   }
 
   ::selection {
-    background: rgba(99, 102, 241, 0.2);
+    background: rgba(124, 110, 246, 0.25);
   }
 
-  /* App-like behavior: disable text selection except in inputs */
-  :not(input):not(textarea):not([contenteditable]) {
+  /* App-like: no text selection except inputs */
+  :not(input):not(textarea):not([contenteditable]):not(.cm-content):not(pre) {
     user-select: none;
     cursor: default;
   }
 
-  input, textarea {
+  input, textarea, .cm-content, pre {
     user-select: text;
     cursor: text;
   }
@@ -124,47 +88,61 @@
     cursor: pointer;
   }
 
-  button, input, textarea, select {
-    letter-spacing: 0;
+  /*
+   * PERFORMANCE: Use thin scrollbars to reduce paint area.
+   * overlay scrollbars prevent layout shifts.
+   */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-text-subtlest) transparent;
   }
-
-  button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
-    outline: 2px solid color-mix(in srgb, var(--color-primary) 55%, transparent);
-    outline-offset: 1px;
-  }
-
-  /* Scrollbars */
   ::-webkit-scrollbar {
-    width: 7px;
-    height: 7px;
+    width: 5px;
+    height: 5px;
   }
   ::-webkit-scrollbar-track {
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
     background: var(--color-text-subtlest);
-    border-radius: 4px;
-    opacity: 0.4;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    opacity: 0.7;
+    border-radius: 3px;
   }
   ::-webkit-scrollbar-corner {
     background: transparent;
   }
 
+  .hide-scrollbars {
+    scrollbar-width: none;
+  }
   .hide-scrollbars::-webkit-scrollbar {
     display: none;
   }
-}
 
-@layer utilities {
-  .gpu {
-    transform: translateZ(0);
-    will-change: transform;
-    backface-visibility: hidden;
+  /*
+   * PERFORMANCE: Disable all CSS transitions/animations by default.
+   * WebKitGTK on Wayland has poor animation performance.
+   * Only enable where absolutely needed with explicit class.
+   */
+  *, *::before, *::after {
+    transition: none !important;
+    animation: none !important;
   }
-  .transition-grid {
-    transition: grid-template 150ms ease;
+
+  /* Opt-in transitions only for interactive elements */
+  .animate-allowed,
+  button:hover,
+  [role="button"]:hover,
+  input:focus,
+  textarea:focus {
+    transition: background-color 50ms ease, border-color 50ms ease, color 50ms ease !important;
+  }
+
+  /* Single allowed animation: loading spinner */
+  .spinner {
+    animation: spin 800ms linear infinite !important;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
   }
 }

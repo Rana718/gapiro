@@ -5,6 +5,7 @@
 -->
 <script lang="ts">
   import { response, ui } from '../../stores/app.svelte';
+  import { cancelRequest } from '../../lib/http';
   import type { ResponseTab } from '../../lib/types';
   import { formatBytes, formatDuration, statusColor, statusBg, statusReason, isJSON, prettyJSON, languageFromContentType } from '../../lib/utils';
   import TabBar from '../core/TabBar.svelte';
@@ -20,14 +21,14 @@
   ]);
 </script>
 
-<div class="flex flex-col h-full bg-surface rounded-md border border-border-subtle overflow-hidden gpu">
+<div class="flex flex-col h-full bg-surface rounded-md border border-border-subtle overflow-hidden">
   {#if response.loading}
     <!-- Loading -->
     <div class="flex-1 flex flex-col items-center justify-center gap-3">
-      <div class="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+      <div class="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full spinner"></div>
       <span class="text-xs text-text-subtlest">Sending request...</span>
       <button
-        onclick={() => { response.loading = false; }}
+        onclick={() => { cancelRequest(); }}
         class="px-3 py-1 text-xs border border-border rounded-md
           text-text-subtle hover:text-text hover:border-border-focus
           transition-colors"

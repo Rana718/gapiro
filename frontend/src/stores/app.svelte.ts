@@ -1,7 +1,7 @@
 import { uid, emptyPair } from '../lib/utils';
 import type {
   Pair, HttpMethod, BodyType, RequestTab, ResponseTab, ResponseViewMode,
-  AuthType, AuthConfig, RequestConfig, RequestSettings, ResponseData, ResponseState, Folder
+  AuthType, AuthConfig, RequestConfig, RequestSettings, ResponseData, Folder
 } from '../lib/types';
 
 // ─── Request State ────────────────────────────────────────────────────────────
@@ -30,11 +30,19 @@ export const request = $state({
 
 // ─── Response State ───────────────────────────────────────────────────────────
 
-export const response: ResponseState = $state({
-  loading: false,
-  data: null,
-  error: null,
-});
+// Response state — $state.raw for data to avoid deep proxy on large response bodies
+// This is critical for performance: response body can be MBs, deep proxy would be catastrophic
+export const response = {
+  get loading() { return _responseLoading; },
+  set loading(v: boolean) { _responseLoading = v; },
+  get data() { return _responseData; },
+  set data(v: ResponseData | null) { _responseData = v; },
+  get error() { return _responseError; },
+  set error(v: string | null) { _responseError = v; },
+};
+let _responseLoading = $state(false);
+let _responseData: ResponseData | null = $state.raw(null);
+let _responseError: string | null = $state(null);
 
 // ─── UI State ─────────────────────────────────────────────────────────────────
 

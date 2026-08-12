@@ -157,7 +157,7 @@ export interface ResponsePayload {
     "size": number;
 
     /**
-     * milliseconds
+     * milliseconds (fractional for sub-ms)
      */
     "duration": number;
     "dnsTime": number;

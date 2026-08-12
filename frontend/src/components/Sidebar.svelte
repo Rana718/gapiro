@@ -52,7 +52,7 @@
 
 <svelte:document onclick={closeContextMenu} />
 
-<div class="flex flex-col h-full bg-surface-inset gpu">
+<div class="flex flex-col h-full bg-surface-inset">
   <!-- Header -->
   <div class="flex items-center justify-between px-3 py-2 border-b border-border-subtle shrink-0">
     <span class="text-[10px] font-semibold text-text-subtlest uppercase tracking-wider">Collection</span>
@@ -183,7 +183,7 @@
   <!-- Context menu -->
   {#if contextMenu}
     <div
-      class="fixed z-50 py-1 min-w-[140px] bg-surface-active border border-border rounded-lg shadow-lg gpu"
+      class="fixed z-50 py-1 min-w-[140px] bg-surface-active border border-border rounded-lg shadow-lg"
       style="left: {contextMenu.x}px; top: {contextMenu.y}px;"
     >
       <button

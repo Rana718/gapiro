@@ -94,7 +94,7 @@
         onkeydown={(e) => { if (e.key === 'Escape') onHiddenChange?.(true); }}
       ></div>
       <div
-        class="absolute top-0 left-0 bottom-0 z-30 w-[320px] gpu
+        class="absolute top-0 left-0 bottom-0 z-30 w-[320px]
           animate-[slideIn_150ms_ease-out]"
       >
         {@render sidebar()}
@@ -105,7 +105,7 @@
 {:else}
   <div
     use:observeContainer
-    class="grid w-full h-full {className} {!dragging ? 'transition-grid' : ''}"
+    class="grid w-full h-full {className}"
     style={gridStyle}
   >
     <div class="overflow-hidden min-w-0">

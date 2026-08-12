@@ -2,6 +2,7 @@ package services
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -45,11 +46,11 @@ type ResponsePayload struct {
 	Headers       map[string]string `json:"headers"`
 	Body          string            `json:"body"`
 	Size          int64             `json:"size"`
-	Duration      int64             `json:"duration"` // milliseconds
-	DNSTime       int64             `json:"dnsTime"`
-	ConnectTime   int64             `json:"connectTime"`
-	TLSTime       int64             `json:"tlsTime"`
-	TTFBTime      int64             `json:"ttfbTime"` // time to first byte
+	Duration      float64           `json:"duration"` // milliseconds (fractional for sub-ms)
+	DNSTime       float64           `json:"dnsTime"`
+	ConnectTime   float64           `json:"connectTime"`
+	TLSTime       float64           `json:"tlsTime"`
+	TTFBTime      float64           `json:"ttfbTime"` // time to first byte
 	Error         string            `json:"error,omitempty"`
 	Protocol      string            `json:"protocol"`
 	RemoteAddr    string            `json:"remoteAddr"`
@@ -58,7 +59,8 @@ type ResponsePayload struct {
 }
 
 // SendRequest executes an HTTP request and returns the response with timing details.
-func (h *HttpService) SendRequest(payload RequestPayload) ResponsePayload {
+// The context is provided by Wails and cancelled when the frontend calls .cancel() on the promise.
+func (h *HttpService) SendRequest(ctx context.Context, payload RequestPayload) ResponsePayload {
 	// Build URL with query params
 	url := payload.URL
 	if !strings.Contains(url, "://") {
@@ -177,7 +179,7 @@ func (h *HttpService) SendRequest(payload RequestPayload) ResponsePayload {
 		},
 	}
 
-	req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace))
+	req = req.WithContext(httptrace.WithClientTrace(ctx, trace))
 
 	// Configure client
 	timeout := time.Duration(30) * time.Second
@@ -216,9 +218,12 @@ func (h *HttpService) SendRequest(payload RequestPayload) ResponsePayload {
 	duration := time.Since(start)
 
 	if err != nil {
+		if ctx.Err() != nil {
+			return ResponsePayload{Error: "Request cancelled", Duration: duration.Seconds() * 1000}
+		}
 		return ResponsePayload{
 			Error:    fmt.Sprintf("Request failed: %v", err),
-			Duration: duration.Milliseconds(),
+			Duration: duration.Seconds() * 1000,
 		}
 	}
 	defer resp.Body.Close()
@@ -230,7 +235,7 @@ func (h *HttpService) SendRequest(payload RequestPayload) ResponsePayload {
 			Status:     resp.StatusCode,
 			StatusText: resp.Status,
 			Error:      fmt.Sprintf("Failed to read response body: %v", err),
-			Duration:   duration.Milliseconds(),
+			Duration:   duration.Seconds() * 1000,
 		}
 	}
 
@@ -241,18 +246,18 @@ func (h *HttpService) SendRequest(payload RequestPayload) ResponsePayload {
 	}
 
 	// Calculate timing
-	var dnsTime, connectTime, tlsTime, ttfbTime int64
+	var dnsTime, connectTime, tlsTime, ttfbTime float64
 	if !dnsStart.IsZero() && !dnsEnd.IsZero() {
-		dnsTime = dnsEnd.Sub(dnsStart).Milliseconds()
+		dnsTime = dnsEnd.Sub(dnsStart).Seconds() * 1000
 	}
 	if !connectStart.IsZero() && !connectEnd.IsZero() {
-		connectTime = connectEnd.Sub(connectStart).Milliseconds()
+		connectTime = connectEnd.Sub(connectStart).Seconds() * 1000
 	}
 	if !tlsStart.IsZero() && !tlsEnd.IsZero() {
-		tlsTime = tlsEnd.Sub(tlsStart).Milliseconds()
+		tlsTime = tlsEnd.Sub(tlsStart).Seconds() * 1000
 	}
 	if !gotFirstByte.IsZero() {
-		ttfbTime = gotFirstByte.Sub(start).Milliseconds()
+		ttfbTime = gotFirstByte.Sub(start).Seconds() * 1000
 	}
 
 	// Determine protocol version
@@ -264,7 +269,7 @@ func (h *HttpService) SendRequest(payload RequestPayload) ResponsePayload {
 		Headers:       headers,
 		Body:          string(respBody),
 		Size:          int64(len(respBody)),
-		Duration:      duration.Milliseconds(),
+		Duration:      duration.Seconds() * 1000,
 		DNSTime:       dnsTime,
 		ConnectTime:   connectTime,
 		TLSTime:       tlsTime,

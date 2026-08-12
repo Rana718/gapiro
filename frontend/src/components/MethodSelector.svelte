@@ -1,5 +1,6 @@
 <!--
-  MethodSelector - HTTP method radio dropdown like Yaak's RequestMethodDropdown.
+  MethodSelector - HTTP method dropdown.
+  type="button" prevents form submission when inside a form.
 -->
 <script lang="ts">
   import type { HttpMethod } from '../lib/types';
@@ -17,20 +18,17 @@
     onchange(m);
     open = false;
   }
-
-  function handleOutsideClick() {
-    if (open) open = false;
-  }
 </script>
 
-<svelte:document onclick={handleOutsideClick} />
+<svelte:document onclick={() => { if (open) open = false; }} />
 
 <div class="relative">
   <button
+    type="button"
     onclick={(e) => { e.stopPropagation(); open = !open; }}
     class="flex items-center gap-1 px-2.5 h-full min-h-sm rounded-l-md
       border-r border-border bg-surface-highlight hover:bg-surface-active
-      text-xs font-bold transition-colors duration-75
+      text-xs font-bold select-none
       {methodColor(method)}"
   >
     {method}
@@ -42,15 +40,18 @@
   {#if open}
     <div
       class="absolute top-full left-0 mt-1 z-50 min-w-[110px] py-1
-        bg-surface-active border border-border rounded-lg shadow-lg gpu"
+        bg-surface-active border border-border rounded-lg shadow-lg"
       onclick={(e) => e.stopPropagation()}
+      onkeydown={(e) => { if (e.key === 'Escape') open = false; }}
       role="listbox"
+      tabindex="-1"
     >
       {#each HTTP_METHODS as m (m)}
         <button
+          type="button"
           onclick={() => select(m)}
           class="w-full px-3 py-1.5 text-left text-xs font-bold
-            hover:bg-surface-highlight transition-colors duration-50
+            hover:bg-surface-highlight
             {methodColor(m)} {m === method ? 'bg-surface-highlight' : ''}"
           role="option"
           aria-selected={m === method}

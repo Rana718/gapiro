@@ -31,10 +31,11 @@
   let containerWidth = $state(0);
   let containerHeight = $state(0);
 
-  // Load persisted ratio
-  let ratio = $state(defaultRatio);
-  const savedRatio = localStorage.getItem(`gapiro:split:${storageKey}`);
-  if (savedRatio) ratio = parseFloat(savedRatio);
+  // Load persisted ratio (intentionally captured once on mount)
+  let ratio = $state((() => {
+    const saved = localStorage.getItem(`gapiro:split:${storageKey}`);
+    return saved ? parseFloat(saved) : defaultRatio;
+  })());
 
   // Determine vertical based on responsive breakpoint
   const vertical = $derived(
@@ -87,14 +88,25 @@
     localStorage.setItem(`gapiro:split:${storageKey}`, ratio.toString());
   }
 
-  // Observe container size
+  // Observe container size — only update on significant changes
   function observeSize(node: HTMLElement) {
     container = node;
+    containerWidth = node.clientWidth;
+    containerHeight = node.clientHeight;
+    let frame: number | null = null;
     const ro = new ResizeObserver(entries => {
-      for (const entry of entries) {
-        containerWidth = entry.contentRect.width;
-        containerHeight = entry.contentRect.height;
-      }
+      if (frame) return; // Skip if already scheduled
+      frame = requestAnimationFrame(() => {
+        frame = null;
+        const entry = entries[0];
+        if (entry) {
+          const w = Math.round(entry.contentRect.width);
+          const h = Math.round(entry.contentRect.height);
+          // Only update if changed by > 1px (avoid sub-pixel thrash)
+          if (Math.abs(w - containerWidth) > 1) containerWidth = w;
+          if (Math.abs(h - containerHeight) > 1) containerHeight = h;
+        }
+      });
     });
     ro.observe(node);
     return { destroy() { ro.disconnect(); } };
@@ -103,7 +115,7 @@
 
 <div
   use:observeSize
-  class="grid w-full h-full overflow-hidden gpu {className} {!dragging ? 'transition-grid' : ''}"
+  class="grid w-full h-full overflow-hidden {className}"
   style={gridStyle()}
 >
   <!-- First slot -->

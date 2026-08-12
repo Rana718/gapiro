@@ -11,7 +11,7 @@
   import Sidebar from './components/Sidebar.svelte';
   import RequestPane from './components/RequestPane.svelte';
   import ResponsePane from './components/response/ResponsePane.svelte';
-  import ProtocolPane from './components/ProtocolPane.svelte';
+  import ProtocolTabs from './components/ProtocolTabs.svelte';
   let overlay = $state<'none'|'settings'|'environments'|'shortcuts'>('none');
   let appearance = $state<'dark' | 'light'>('dark');
   function toggleAppearance() {
@@ -46,7 +46,7 @@
 
 <svelte:document onkeydown={handleKeydown} />
 
-<div class="flex flex-col w-full h-full overflow-hidden gpu" data-appearance={appearance}>
+<div class="flex flex-col w-full h-full overflow-hidden" data-appearance={appearance}>
   <!-- Title bar / drag area -->
   <div
     class="flex items-center h-9 px-3 bg-surface-inset border-b border-border-subtle shrink-0"
@@ -91,7 +91,9 @@
           >
             {#snippet first()}
               <div class="h-full pb-0.5">
-                <ProtocolPane><RequestPane onSend={sendRequest} onCancel={cancelRequest} /></ProtocolPane>
+                <ProtocolTabs>
+                  <RequestPane onSend={sendRequest} onCancel={cancelRequest} />
+                </ProtocolTabs>
               </div>
             {/snippet}
 

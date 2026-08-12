@@ -19,6 +19,17 @@ var assets embed.FS
 
 func init() {
 	ensureWaylandScaling()
+
+	// WebKitGTK performance tuning for Wayland
+	// Enable DMA-BUF renderer for zero-copy GPU buffer sharing
+	setIfEmpty("WEBKIT_DISABLE_DMABUF_RENDERER", "0")
+	// Disable vsync wait in GTK to reduce input latency
+	setIfEmpty("GDK_FRAME_SYNC", "0")
+	// Use EGL instead of GLX for better Wayland perf
+	setIfEmpty("GSK_RENDERER", "ngl")
+	// Reduce GTK debug overhead in production
+	setIfEmpty("GTK_DEBUG", "")
+	setIfEmpty("G_MESSAGES_DEBUG", "")
 }
 
 func ensureWaylandScaling() {
