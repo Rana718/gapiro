@@ -18,11 +18,11 @@
   const download = $derived(Math.max(0, total - ttfb));
 
   const segments = $derived([
-    { label: 'DNS Lookup', value: dns, color: 'bg-cyan-500', icon: '🌐' },
-    { label: 'TCP Connection', value: connect, color: 'bg-green-500', icon: '🔗' },
-    { label: 'TLS Handshake', value: tls, color: 'bg-purple-500', icon: '🔒' },
-    { label: 'Time to First Byte', value: ttfb, color: 'bg-amber-500', icon: '⏱️' },
-    { label: 'Content Download', value: download, color: 'bg-blue-500', icon: '⬇️' },
+    { label: 'DNS Lookup', value: dns, color: 'bg-cyan-500' },
+    { label: 'TCP Connection', value: connect, color: 'bg-green-500' },
+    { label: 'TLS Handshake', value: tls, color: 'bg-purple-500' },
+    { label: 'Time to First Byte', value: ttfb, color: 'bg-amber-500' },
+    { label: 'Content Download', value: download, color: 'bg-blue-500' },
   ]);
 </script>
 
@@ -32,7 +32,7 @@
     <div class="flex flex-col gap-1.5">
       <div class="flex items-center justify-between">
         <span class="flex items-center gap-1.5 text-xs text-text-subtle">
-          <span class="text-[11px]">{seg.icon}</span>
+          <span class="w-2 h-2 rounded-full {seg.color}"></span>
           {seg.label}
         </span>
         <span class="text-xs font-mono text-text font-medium">{formatDuration(seg.value)}</span>

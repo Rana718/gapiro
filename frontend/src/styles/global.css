@@ -2,19 +2,6 @@
 
 @custom-variant dark (&:is([data-appearance="dark"] *));
 
-:root[data-appearance="light"] {
-  --color-surface: #f7f7fa;
-  --color-surface-highlight: #ffffff;
-  --color-surface-active: #e9e9f0;
-  --color-surface-inset: #eeeeF4;
-  --color-text: #20202a;
-  --color-text-subtle: #5e5e6d;
-  --color-text-subtlest: #898998;
-  --color-placeholder: #aaaaba;
-  --color-border: #d8d8e2;
-  --color-border-subtle: #e6e6ee;
-}
-
 @theme inline {
   --font-mono: JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --font-sans: Inter, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
@@ -67,6 +54,39 @@
   --shadow-lg: 0 8px 24px rgba(0,0,0,0.5);
 }
 
+/* Yaak's native palette. These must follow @theme so appearance overrides win. */
+[data-appearance="dark"] {
+  --color-surface: hsl(244 23% 14%);
+  --color-surface-highlight: hsl(244 23% 20%);
+  --color-surface-active: hsl(244 23% 23%);
+  --color-surface-inset: hsl(244 23% 11%);
+  --color-text: hsl(245 23% 85%);
+  --color-text-subtle: hsl(245 18% 58%);
+  --color-text-subtlest: hsl(245 18% 45%);
+  --color-placeholder: hsl(245 18% 37%);
+  --color-border: hsl(244 23% 25%);
+  --color-border-subtle: hsl(244 23% 21%);
+  --color-border-focus: hsl(266 100% 79%);
+  --color-primary: hsl(266 100% 79%);
+  --color-primary-hover: hsl(266 100% 85%);
+}
+
+[data-appearance="light"] {
+  --color-surface: hsl(0 0% 100%);
+  --color-surface-highlight: hsl(218 24% 92%);
+  --color-surface-active: hsl(217 25% 89%);
+  --color-surface-inset: hsl(220 20% 98%);
+  --color-text: hsl(217 24% 10%);
+  --color-text-subtle: hsl(217 24% 40%);
+  --color-text-subtlest: hsl(217 24% 58%);
+  --color-placeholder: hsl(217 20% 67%);
+  --color-border: hsl(217 22% 90%);
+  --color-border-subtle: hsl(217 22% 88%);
+  --color-border-focus: hsl(266 100% 60%);
+  --color-primary: hsl(266 100% 60%);
+  --color-primary-hover: hsl(266 100% 52%);
+}
+
 @layer base {
   *, *::before, *::after {
     box-sizing: border-box;
@@ -102,6 +122,15 @@
 
   button, [role="button"] {
     cursor: pointer;
+  }
+
+  button, input, textarea, select {
+    letter-spacing: 0;
+  }
+
+  button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-primary) 55%, transparent);
+    outline-offset: 1px;
   }
 
   /* Scrollbars */
