@@ -2,6 +2,7 @@ import { defineConfig } from "vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import tailwindcss from "@tailwindcss/vite";
 import wails from "@wailsio/runtime/plugins/vite";
+import path from "path";
 
 export default defineConfig({
   server: {
@@ -14,6 +15,11 @@ export default defineConfig({
     svelte(),
     wails("./bindings"),
   ],
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
   build: {
     target: "esnext",
     cssMinify: true,

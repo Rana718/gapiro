@@ -1,34 +1,58 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-mono: JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  --font-sans: Inter, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  /* Fonts — Geist for UI, JetBrains Mono for code */
+  --font-sans: "Geist", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-  --color-*: initial;
-  --color-transparent: transparent;
+  /* shadcn color tokens mapped to our dark theme */
+  --radius: 0.5rem;
 
-  /* Surfaces - Yaak dark */
+  --color-background: #14141a;
+  --color-foreground: #e2e2e6;
+  --color-card: #1a1a22;
+  --color-card-foreground: #e2e2e6;
+  --color-popover: #1e1e28;
+  --color-popover-foreground: #e2e2e6;
+  --color-primary: #7c6ef6;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #23232e;
+  --color-secondary-foreground: #e2e2e6;
+  --color-muted: #23232e;
+  --color-muted-foreground: #9898a8;
+  --color-accent: #2c2c3a;
+  --color-accent-foreground: #e2e2e6;
+  --color-destructive: #e5484d;
+  --color-destructive-foreground: #ffffff;
+  --color-border: #2e2e3e;
+  --color-input: #2e2e3e;
+  --color-ring: #7c6ef6;
+
+  /* Sidebar */
+  --color-sidebar: #14141a;
+  --color-sidebar-foreground: #e2e2e6;
+  --color-sidebar-primary: #7c6ef6;
+  --color-sidebar-primary-foreground: #ffffff;
+  --color-sidebar-accent: #23232e;
+  --color-sidebar-accent-foreground: #e2e2e6;
+  --color-sidebar-border: #24242f;
+  --color-sidebar-ring: #7c6ef6;
+
+  /* App-specific tokens */
   --color-surface: #1a1a22;
   --color-surface-highlight: #23232e;
   --color-surface-active: #2c2c3a;
   --color-surface-inset: #14141a;
-
-  /* Text */
   --color-text: #e2e2e6;
   --color-text-subtle: #9898a8;
   --color-text-subtlest: #5c5c6e;
   --color-placeholder: #3e3e4e;
-
-  /* Borders */
-  --color-border: #2e2e3e;
   --color-border-subtle: #24242f;
   --color-border-focus: #7c6ef6;
-
-  /* Primary - violet */
-  --color-primary: #7c6ef6;
   --color-primary-hover: #9587ff;
-
-  /* Semantic */
   --color-danger: #e5484d;
   --color-success: #30a46c;
   --color-warning: #f5a623;
@@ -56,7 +80,9 @@
   }
 
   html, body, #app {
-    @apply m-0 p-0 w-full h-full overflow-hidden bg-surface text-text;
+    @apply m-0 p-0 w-full h-full overflow-hidden;
+    background: var(--color-background);
+    color: var(--color-foreground);
     font-family: var(--font-sans);
     font-size: 13px;
     line-height: 1.5;
@@ -65,8 +91,6 @@
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    /* Prevent layout thrashing from scrollbar appearance */
-    overflow: hidden;
   }
 
   ::selection {
@@ -88,10 +112,7 @@
     cursor: pointer;
   }
 
-  /*
-   * PERFORMANCE: Use thin scrollbars to reduce paint area.
-   * overlay scrollbars prevent layout shifts.
-   */
+  /* Thin scrollbars */
   * {
     scrollbar-width: thin;
     scrollbar-color: var(--color-text-subtlest) transparent;
@@ -118,15 +139,10 @@
     display: none;
   }
 
-  /* Keep motion limited to cheap compositor-friendly properties. */
-  button, [role="button"], input, textarea, select {
-    transition: background-color 90ms ease, border-color 90ms ease, color 90ms ease, opacity 90ms ease;
-  }
-
+  /* Loading spinner — only allowed animation */
   .spinner {
-    animation: spin 800ms linear infinite !important;
+    animation: spin 800ms linear infinite;
   }
-
   @keyframes spin {
     to { transform: rotate(360deg); }
   }

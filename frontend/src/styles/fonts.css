@@ -1,0 +1,18 @@
+/* Geist Sans - Variable font */
+@font-face {
+  font-family: 'Geist';
+  src: url('/fonts/Geist-Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Geist Mono / JetBrains Mono for code */
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('/fonts/GeistMono-Variable.woff2') format('woff2'),
+       local('JetBrains Mono');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
