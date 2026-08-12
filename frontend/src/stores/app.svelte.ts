@@ -56,6 +56,20 @@ export const collection = $state({
   activeRequestId: null as string | null,
 });
 
+// Keep the local workspace useful between launches (desktop apps should feel stateful).
+if (typeof localStorage !== 'undefined') {
+  try {
+    const saved = localStorage.getItem('gapiro:collection');
+    if (saved) Object.assign(collection, JSON.parse(saved));
+  } catch { /* ignore corrupt local state */ }
+}
+
+function persistCollection() {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('gapiro:collection', JSON.stringify(collection));
+  }
+}
+
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
 export function resetRequest() {
@@ -127,6 +141,7 @@ export function saveCurrentRequest(name?: string) {
     collection.requests.push(newReq);
     collection.activeRequestId = newReq.id;
   }
+  persistCollection();
 }
 
 export function deleteRequest(id: string) {
@@ -135,6 +150,7 @@ export function deleteRequest(id: string) {
     collection.requests.splice(idx, 1);
     if (collection.activeRequestId === id) resetRequest();
   }
+  persistCollection();
 }
 
 export function duplicateRequest(id: string) {
@@ -148,8 +164,10 @@ export function duplicateRequest(id: string) {
     updatedAt: Date.now(),
   };
   collection.requests.push(dup);
+  persistCollection();
 }
 
 export function createFolder(name: string, parentId?: string) {
   collection.folders.push({ id: uid('fl'), name, parentId, expanded: true });
+  persistCollection();
 }

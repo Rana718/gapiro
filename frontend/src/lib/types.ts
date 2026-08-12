@@ -6,7 +6,7 @@ export type BodyType = 'none' | 'json' | 'xml' | 'text' | 'form-urlencoded' | 'f
 
 export type RequestTab = 'body' | 'params' | 'headers' | 'auth' | 'settings' | 'description';
 
-export type ResponseTab = 'body' | 'request' | 'headers' | 'cookies' | 'timeline';
+export type ResponseTab = 'body' | 'request' | 'headers' | 'cookies' | 'timeline' | 'info';
 
 export type ResponseViewMode = 'pretty' | 'raw';
 

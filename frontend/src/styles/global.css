@@ -2,6 +2,19 @@
 
 @custom-variant dark (&:is([data-appearance="dark"] *));
 
+:root[data-appearance="light"] {
+  --color-surface: #f7f7fa;
+  --color-surface-highlight: #ffffff;
+  --color-surface-active: #e9e9f0;
+  --color-surface-inset: #eeeeF4;
+  --color-text: #20202a;
+  --color-text-subtle: #5e5e6d;
+  --color-text-subtlest: #898998;
+  --color-placeholder: #aaaaba;
+  --color-border: #d8d8e2;
+  --color-border-subtle: #e6e6ee;
+}
+
 @theme inline {
   --font-mono: JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --font-sans: Inter, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
