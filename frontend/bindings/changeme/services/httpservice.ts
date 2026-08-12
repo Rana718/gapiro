@@ -15,6 +15,14 @@ import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wails
 import * as $models from "./models.js";
 
 /**
+ * CancelRequest explicitly aborts a native request. This works independently
+ * of the frontend bridge promise and is reliable during DNS/TLS/body reads.
+ */
+export function CancelRequest(requestID: string): $CancellablePromise<boolean> {
+    return $Call.ByID(977365476, requestID);
+}
+
+/**
  * FormatJSON takes a JSON string and returns it pretty-printed.
  */
 export function FormatJSON(input: string): $CancellablePromise<string> {

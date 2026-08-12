@@ -12,11 +12,15 @@ import (
 	"net/http/httptrace"
 	"os"
 	"strings"
+	"sync"
 	"time"
 )
 
 // HttpService handles all HTTP request execution from the frontend.
-type HttpService struct{}
+type HttpService struct {
+	mu      sync.Mutex
+	cancels map[string]context.CancelFunc
+}
 
 // KeyValue represents a key-value pair for headers, params, form data.
 type KeyValue struct {
@@ -27,16 +31,17 @@ type KeyValue struct {
 
 // RequestPayload is the request configuration sent from the frontend.
 type RequestPayload struct {
-	Method      string     `json:"method"`
-	URL         string     `json:"url"`
-	Headers     []KeyValue `json:"headers"`
-	QueryParams []KeyValue `json:"queryParams"`
-	BodyType    string     `json:"bodyType"` // none, json, text, form-urlencoded, form-data, binary
-	Body        string     `json:"body"`
-	FormData    []KeyValue `json:"formData"`
-	Timeout     int        `json:"timeout"` // seconds, 0 = no timeout
-	FollowRedirects bool  `json:"followRedirects"`
-	VerifySSL   bool       `json:"verifySSL"`
+	RequestID       string     `json:"requestId"`
+	Method          string     `json:"method"`
+	URL             string     `json:"url"`
+	Headers         []KeyValue `json:"headers"`
+	QueryParams     []KeyValue `json:"queryParams"`
+	BodyType        string     `json:"bodyType"` // none, json, text, form-urlencoded, form-data, binary
+	Body            string     `json:"body"`
+	FormData        []KeyValue `json:"formData"`
+	Timeout         int        `json:"timeout"` // seconds, 0 = no timeout
+	FollowRedirects bool       `json:"followRedirects"`
+	VerifySSL       bool       `json:"verifySSL"`
 }
 
 // ResponsePayload is the response data sent back to the frontend.
@@ -61,6 +66,24 @@ type ResponsePayload struct {
 // SendRequest executes an HTTP request and returns the response with timing details.
 // The context is provided by Wails and cancelled when the frontend calls .cancel() on the promise.
 func (h *HttpService) SendRequest(ctx context.Context, payload RequestPayload) ResponsePayload {
+	emptyResponse := func() ResponsePayload {
+		return ResponsePayload{Headers: map[string]string{}, Body: ""}
+	}
+	requestCtx, cancel := context.WithCancel(ctx)
+	if payload.RequestID != "" {
+		h.mu.Lock()
+		if h.cancels == nil {
+			h.cancels = make(map[string]context.CancelFunc)
+		}
+		h.cancels[payload.RequestID] = cancel
+		h.mu.Unlock()
+		defer func() {
+			h.mu.Lock()
+			delete(h.cancels, payload.RequestID)
+			h.mu.Unlock()
+		}()
+	}
+	defer cancel()
 	// Build URL with query params
 	url := payload.URL
 	if !strings.Contains(url, "://") {
@@ -129,7 +152,9 @@ func (h *HttpService) SendRequest(ctx context.Context, payload RequestPayload) R
 	// Create request
 	req, err := http.NewRequest(payload.Method, url, body)
 	if err != nil {
-		return ResponsePayload{Error: fmt.Sprintf("Failed to create request: %v", err)}
+		result := emptyResponse()
+		result.Error = fmt.Sprintf("Failed to create request: %v", err)
+		return result
 	}
 
 	// Set content type if we have a body
@@ -179,7 +204,7 @@ func (h *HttpService) SendRequest(ctx context.Context, payload RequestPayload) R
 		},
 	}
 
-	req = req.WithContext(httptrace.WithClientTrace(ctx, trace))
+	req = req.WithContext(httptrace.WithClientTrace(requestCtx, trace))
 
 	// Configure client
 	timeout := time.Duration(30) * time.Second
@@ -188,6 +213,13 @@ func (h *HttpService) SendRequest(ctx context.Context, payload RequestPayload) R
 	}
 
 	transport := &http.Transport{
+		Proxy:                 http.ProxyFromEnvironment,
+		ForceAttemptHTTP2:     true,
+		MaxIdleConns:          100,
+		MaxIdleConnsPerHost:   10,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ResponseHeaderTimeout: timeout,
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: !payload.VerifySSL,
 		},
@@ -218,13 +250,16 @@ func (h *HttpService) SendRequest(ctx context.Context, payload RequestPayload) R
 	duration := time.Since(start)
 
 	if err != nil {
-		if ctx.Err() != nil {
-			return ResponsePayload{Error: "Request cancelled", Duration: duration.Seconds() * 1000}
+		if requestCtx.Err() != nil {
+			result := emptyResponse()
+			result.Error = "Request cancelled"
+			result.Duration = duration.Seconds() * 1000
+			return result
 		}
-		return ResponsePayload{
-			Error:    fmt.Sprintf("Request failed: %v", err),
-			Duration: duration.Seconds() * 1000,
-		}
+		result := emptyResponse()
+		result.Error = fmt.Sprintf("Request failed: %v", err)
+		result.Duration = duration.Seconds() * 1000
+		return result
 	}
 	defer resp.Body.Close()
 
@@ -279,6 +314,19 @@ func (h *HttpService) SendRequest(ctx context.Context, payload RequestPayload) R
 		ContentType:   resp.Header.Get("Content-Type"),
 		RedirectCount: redirectCount,
 	}
+}
+
+// CancelRequest explicitly aborts a native request. This works independently
+// of the frontend bridge promise and is reliable during DNS/TLS/body reads.
+func (h *HttpService) CancelRequest(requestID string) bool {
+	h.mu.Lock()
+	cancel := h.cancels[requestID]
+	h.mu.Unlock()
+	if cancel == nil {
+		return false
+	}
+	cancel()
+	return true
 }
 
 // FormatJSON takes a JSON string and returns it pretty-printed.

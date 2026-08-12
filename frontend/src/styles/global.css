@@ -118,26 +118,11 @@
     display: none;
   }
 
-  /*
-   * PERFORMANCE: Disable all CSS transitions/animations by default.
-   * WebKitGTK on Wayland has poor animation performance.
-   * Only enable where absolutely needed with explicit class.
-   */
-  *, *::before, *::after {
-    transition: none !important;
-    animation: none !important;
+  /* Keep motion limited to cheap compositor-friendly properties. */
+  button, [role="button"], input, textarea, select {
+    transition: background-color 90ms ease, border-color 90ms ease, color 90ms ease, opacity 90ms ease;
   }
 
-  /* Opt-in transitions only for interactive elements */
-  .animate-allowed,
-  button:hover,
-  [role="button"]:hover,
-  input:focus,
-  textarea:focus {
-    transition: background-color 50ms ease, border-color 50ms ease, color 50ms ease !important;
-  }
-
-  /* Single allowed animation: loading spinner */
   .spinner {
     animation: spin 800ms linear infinite !important;
   }

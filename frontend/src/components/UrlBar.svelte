@@ -58,8 +58,9 @@
     {#if loading}
       <button
         type="button"
-        onclick={onCancel}
-        class="flex items-center justify-center w-8 h-full mr-0.5 my-0.5 rounded-md
+        data-cancel-request
+        onpointerdown={(e) => { e.preventDefault(); e.stopPropagation(); onCancel(); }}
+        class="relative z-20 pointer-events-auto flex items-center justify-center w-8 h-full mr-0.5 my-0.5 rounded-md
           text-text-subtle hover:text-danger hover:bg-danger/10
           transition-colors duration-75"
         title="Cancel Request"

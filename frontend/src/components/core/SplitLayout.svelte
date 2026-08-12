@@ -137,7 +137,7 @@
     aria-orientation={vertical ? 'horizontal' : 'vertical'}
   >
     {#if dragging}
-      <div class="fixed inset-0 {vertical ? 'cursor-row-resize' : 'cursor-col-resize'}"></div>
+      <div class="fixed inset-0 pointer-events-none {vertical ? 'cursor-row-resize' : 'cursor-col-resize'}"></div>
     {/if}
   </div>
 

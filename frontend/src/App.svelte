@@ -26,6 +26,9 @@
 
   // Keyboard shortcuts
   function handleKeydown(e: KeyboardEvent) {
+    if (e.key === 'Escape') {
+      cancelRequest();
+    }
     // Ctrl+Enter: Send request
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
       e.preventDefault();
@@ -42,9 +45,19 @@
       ui.sidebarHidden = !ui.sidebarHidden;
     }
   }
+
+  // Capture cancellation before resize handles, forms, or WebView click synthesis.
+  function handlePointerDown(e: PointerEvent) {
+    const target = e.target as Element | null;
+    if (target?.closest('[data-cancel-request]')) {
+      e.preventDefault();
+      e.stopPropagation();
+      cancelRequest();
+    }
+  }
 </script>
 
-<svelte:document onkeydown={handleKeydown} />
+<svelte:document onkeydown={handleKeydown} onpointerdown={handlePointerDown} />
 
 <div class="flex flex-col w-full h-full overflow-hidden" data-appearance={appearance}>
   <!-- Title bar / drag area -->

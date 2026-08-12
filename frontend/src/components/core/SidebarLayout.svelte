@@ -123,7 +123,7 @@
       aria-orientation="vertical"
     >
       {#if dragging}
-        <div class="fixed inset-0 cursor-col-resize"></div>
+        <div class="fixed inset-0 pointer-events-none cursor-col-resize"></div>
       {/if}
     </div>
     <div class="overflow-hidden min-w-0">

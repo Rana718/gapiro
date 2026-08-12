@@ -15,7 +15,7 @@
 
   const tabs = $derived([
     { id: 'body', label: 'Response' },
-    { id: 'headers', label: 'Headers', badge: response.data ? Object.keys(response.data.headers).length : undefined },
+    { id: 'headers', label: 'Headers', badge: response.data ? Object.keys(response.data.headers ?? {}).length : undefined },
     { id: 'timeline', label: 'Timeline' },
     { id: 'info', label: 'Info' },
   ]);
@@ -28,8 +28,10 @@
       <div class="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full spinner"></div>
       <span class="text-xs text-text-subtlest">Sending request...</span>
       <button
-        onclick={() => { cancelRequest(); }}
-        class="px-3 py-1 text-xs border border-border rounded-md
+        type="button"
+        data-cancel-request
+        onpointerdown={(e) => { e.preventDefault(); e.stopPropagation(); cancelRequest(); }}
+        class="relative z-20 pointer-events-auto px-3 py-1 text-xs border border-border rounded-md
           text-text-subtle hover:text-text hover:border-border-focus
           transition-colors"
       >
@@ -110,7 +112,7 @@
       {:else if ui.activeResponseTab === 'headers'}
         <ResponseHeaders
           requestHeaders={{}}
-          responseHeaders={response.data.headers}
+          responseHeaders={response.data.headers ?? {}}
         />
       {:else if ui.activeResponseTab === 'timeline'}
         <ResponseTimeline

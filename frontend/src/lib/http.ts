@@ -22,20 +22,28 @@ loadBindings();
 
 let activePromise: any = null; // Wails CancellablePromise
 let abortController: AbortController | null = null;
-let cancelled = false;
+let requestGeneration = 0;
+let activeRequestId: string | null = null;
 
 export async function sendRequest(): Promise<void> {
   if (!request.url || response.loading) return;
 
   // Cancel any in-flight request first
   cancelRequest();
+  const generation = ++requestGeneration;
+  const requestId = `http_${Date.now()}_${generation}`;
+  activeRequestId = requestId;
 
   response.loading = true;
   response.error = null;
   response.data = null;
-  cancelled = false;
+  // Safety valve for a bridge that cannot deliver cancellation (e.g. blocked native DNS).
+  const watchdog = window.setTimeout(() => {
+    if (generation === requestGeneration && response.loading) cancelRequest();
+  }, Math.max(60000, (request.settings.timeout || 30) * 1000 + 5000));
 
   const payload = {
+    requestId,
     method: request.method,
     url: request.url,
     headers: request.headers.filter(h => h.name !== '').map(h => ({ key: h.name, value: h.value, enabled: h.enabled })),
@@ -63,12 +71,19 @@ export async function sendRequest(): Promise<void> {
       result = await fetchFallback(payload, abortController.signal);
     }
 
-    if (!cancelled) {
+    if (generation === requestGeneration) {
+      // Go zero values arrive as null for maps. Normalize at the boundary so
+      // cancelled/error responses can never crash reactive UI rendering.
+      result.headers = result.headers ?? {};
+      result.body = result.body ?? '';
+      result.contentType = result.contentType ?? '';
+      result.protocol = result.protocol ?? '';
+      result.remoteAddr = result.remoteAddr ?? '';
       response.data = result;
       if (result.error) response.error = result.error;
     }
   } catch (err: any) {
-    if (!cancelled) {
+    if (generation === requestGeneration) {
       const msg = err?.message ?? String(err) ?? 'Request failed';
       // Don't show "cancelled" as an error
       if (!msg.includes('cancel') && !msg.includes('abort')) {
@@ -76,30 +91,44 @@ export async function sendRequest(): Promise<void> {
       }
     }
   } finally {
-    if (!cancelled) {
+    window.clearTimeout(watchdog);
+    if (generation === requestGeneration) {
       response.loading = false;
     }
-    activePromise = null;
-    abortController = null;
+    if (generation === requestGeneration) {
+      activePromise = null;
+      abortController = null;
+      activeRequestId = null;
+    }
   }
 }
 
 export function cancelRequest(): void {
-  cancelled = true;
-
-  // Cancel Wails CancellablePromise
-  if (activePromise && typeof activePromise.cancel === 'function') {
-    activePromise.cancel();
-    activePromise = null;
-  }
-
-  // Cancel fetch AbortController
-  if (abortController) {
-    abortController.abort();
-    abortController = null;
-  }
-
+  requestGeneration++;
+  // UI state must be committed before touching the native bridge. A stalled
+  // Wails call can otherwise prevent Svelte/WebKit from painting this change.
   response.loading = false;
+  response.error = null;
+  const promise = activePromise;
+  const controller = abortController;
+  const requestId = activeRequestId;
+  activePromise = null;
+  abortController = null;
+  activeRequestId = null;
+
+  // Yield a frame so the Cancel button visibly responds even when the native
+  // bridge is wedged. Abort work only after the UI has painted.
+  requestAnimationFrame(() => {
+    window.setTimeout(() => {
+      if (controller) controller.abort('Cancelled by user');
+      if (requestId && HttpService?.CancelRequest) {
+        try { void HttpService.CancelRequest(requestId); } catch { /* best effort */ }
+      }
+      if (promise && typeof promise.cancel === 'function') {
+        try { void promise.cancel('Cancelled by user'); } catch { /* expected */ }
+      }
+    }, 0);
+  });
 }
 
 // ─── GraphQL ────────────────────────────────────────────────────────────────

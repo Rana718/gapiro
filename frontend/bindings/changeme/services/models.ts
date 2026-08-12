@@ -119,6 +119,7 @@ export interface Pair {
  * RequestPayload is the request configuration sent from the frontend.
  */
 export interface RequestPayload {
+    "requestId": string;
     "method": string;
     "url": string;
     "headers": KeyValue[] | null;
