@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+/* Custom theme for Gapiro - dark, GPU-optimized */
+@theme {
+  --color-surface-0: #0c0c0f;
+  --color-surface-1: #111115;
+  --color-surface-2: #1a1a1f;
+  --color-surface-3: #222228;
+  --color-surface-4: #2a2a32;
+
+  --color-border-subtle: #2a2a32;
+  --color-border-default: #333340;
+  --color-border-focus: #6366f1;
+
+  --color-text-primary: #e4e4e7;
+  --color-text-secondary: #a1a1aa;
+  --color-text-muted: #71717a;
+
+  --color-accent: #6366f1;
+  --color-accent-hover: #818cf8;
+  --color-accent-subtle: #6366f11a;
+
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-info: #3b82f6;
+
+  --color-method-get: #22c55e;
+  --color-method-post: #f59e0b;
+  --color-method-put: #3b82f6;
+  --color-method-patch: #a855f7;
+  --color-method-delete: #ef4444;
+  --color-method-head: #06b6d4;
+  --color-method-options: #ec4899;
+}
+
+/* GPU compositing hints for smooth rendering on Wayland */
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html, body, #app {
+    @apply m-0 p-0 w-full h-full overflow-hidden;
+    background: var(--color-surface-1);
+    color: var(--color-text-primary);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Force GPU layer for root */
+    will-change: transform;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-border-default);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-text-muted);
+  }
+
+  /* Focus rings */
+  :focus-visible {
+    outline: 1.5px solid var(--color-border-focus);
+    outline-offset: -1px;
+    border-radius: 4px;
+  }
+
+  /* Selection */
+  ::selection {
+    background: var(--color-accent-subtle);
+  }
+}
+
+/* Utility for GPU-composited panels (prevents repaint on resize) */
+@layer utilities {
+  .gpu-layer {
+    transform: translateZ(0);
+    will-change: transform;
+    backface-visibility: hidden;
+  }
+}
