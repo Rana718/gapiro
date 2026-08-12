@@ -1,8 +1,9 @@
 <!--
-  ResponseBody - Renders response body with syntax detection.
+  ResponseBody - Renders response body with CodeMirror syntax highlighting.
 -->
 <script lang="ts">
-  import { isJSON, isHTML, isXML, prettyJSON, languageFromContentType } from '../../lib/utils';
+  import { isJSON, prettyJSON, languageFromContentType } from '../../lib/utils';
+  import CodeEditor from '../core/CodeEditor.svelte';
 
   interface Props {
     body: string;
@@ -21,18 +22,17 @@
   const language = $derived(languageFromContentType(contentType));
 </script>
 
-<div class="relative w-full h-full overflow-auto">
+<div class="w-full h-full overflow-hidden">
   {#if !body}
     <div class="flex items-center justify-center h-full text-sm text-text-subtlest">
       Empty response
     </div>
   {:else}
-    <pre class="w-full h-full p-3 m-0 text-xs font-mono text-text leading-relaxed
-      whitespace-pre-wrap break-words overflow-auto bg-surface-inset">{displayBody()}</pre>
-    <!-- Language badge -->
-    <span class="absolute top-2 right-4 px-1.5 py-0.5 text-[9px] uppercase tracking-wider
-      text-text-subtlest bg-surface-highlight rounded font-semibold pointer-events-none">
+    <CodeEditor
+      value={displayBody()}
+      readonly
       {language}
-    </span>
+      lineNums={true}
+    />
   {/if}
 </div>

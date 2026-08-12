@@ -9,7 +9,11 @@ export default defineConfig({
     port: Number(process.env.WAILS_VITE_PORT) || 9245,
     strictPort: true,
   },
-  plugins: [tailwindcss(), svelte(), wails("./bindings")],
+  plugins: [
+    tailwindcss(),
+    svelte(),
+    wails("./bindings"),
+  ],
   build: {
     target: "esnext",
     cssMinify: true,

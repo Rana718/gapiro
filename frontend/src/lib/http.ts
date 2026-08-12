@@ -2,13 +2,23 @@ import { request, response } from '../stores/app.svelte';
 import type { ResponseData } from './types';
 
 let HttpService: any = null;
+let CollectionService: any = null;
+let GraphQLService: any = null;
+let GrpcService: any = null;
 
-// Try to load Wails bindings (available at runtime)
-try {
-  import('../../bindings/changeme').then(mod => {
-    HttpService = mod.HttpService;
-  }).catch(() => {});
-} catch {}
+// Load Wails bindings - these exist after `wails3 generate bindings`
+async function loadBindings() {
+  try {
+    const mod = await import('../../bindings/changeme/services');
+    HttpService = mod?.HttpService ?? null;
+    CollectionService = mod?.CollectionService ?? null;
+    GraphQLService = mod?.GraphQLService ?? null;
+    GrpcService = mod?.GrpcService ?? null;
+  } catch {
+    // Bindings not available (standalone vite build without wails)
+  }
+}
+loadBindings();
 
 export async function sendRequest(): Promise<void> {
   if (!request.url || response.loading) return;
@@ -50,7 +60,110 @@ export function cancelRequest(): void {
   response.loading = false;
 }
 
-/** Browser fetch fallback for dev mode without Wails backend */
+// ─── GraphQL ────────────────────────────────────────────────────────────────
+
+export async function sendGraphQLQuery(url: string, query: string, variables: string, headers: any[]): Promise<any> {
+  if (GraphQLService) {
+    return await GraphQLService.ExecuteQuery({ url, query, variables, headers });
+  }
+  // Fallback
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query, variables: variables ? JSON.parse(variables) : {} }),
+  });
+  return resp.json();
+}
+
+export async function introspectGraphQL(url: string, headers: any[]): Promise<any> {
+  if (GraphQLService) {
+    return await GraphQLService.IntrospectSchema(url, headers);
+  }
+  return null;
+}
+
+// ─── gRPC ───────────────────────────────────────────────────────────────────
+
+export async function parseProtoFile(filePath: string, importPaths: string[]): Promise<any> {
+  if (GrpcService) {
+    return await GrpcService.ParseProtoFile(filePath, importPaths);
+  }
+  return [];
+}
+
+export async function sendGrpcUnary(address: string, protoFile: string, importPaths: string[], fullMethod: string, message: string, metadata: any[]): Promise<any> {
+  if (GrpcService) {
+    return await GrpcService.SendUnary(address, protoFile, importPaths, fullMethod, message, metadata);
+  }
+  return { error: 'gRPC requires Wails backend', duration: 0 };
+}
+
+// ─── Collection (SQLite persistence) ────────────────────────────────────────
+
+export async function loadCollection(): Promise<{ requests: any[]; folders: any[] }> {
+  if (CollectionService) {
+    const [requests, folders] = await Promise.all([
+      CollectionService.ListRequests('ws_default'),
+      CollectionService.ListFolders('ws_default'),
+    ]);
+    return { requests: requests ?? [], folders: folders ?? [] };
+  }
+  return { requests: [], folders: [] };
+}
+
+export async function saveRequestToDb(req: any): Promise<any> {
+  if (CollectionService) {
+    return await CollectionService.SaveRequest(req);
+  }
+  return req;
+}
+
+export async function deleteRequestFromDb(id: string): Promise<void> {
+  if (CollectionService) {
+    await CollectionService.DeleteRequest(id);
+  }
+}
+
+export async function duplicateRequestInDb(id: string): Promise<any> {
+  if (CollectionService) {
+    return await CollectionService.DuplicateRequest(id);
+  }
+  return null;
+}
+
+// ─── Environments ───────────────────────────────────────────────────────────
+
+export async function loadEnvironments(): Promise<any[]> {
+  if (CollectionService) {
+    return await CollectionService.ListEnvironments('ws_default') ?? [];
+  }
+  return [];
+}
+
+export async function saveEnvironment(env: any): Promise<any> {
+  if (CollectionService) {
+    return await CollectionService.SaveEnvironment(env);
+  }
+  return env;
+}
+
+export async function deleteEnvironment(id: string): Promise<void> {
+  if (CollectionService) {
+    await CollectionService.DeleteEnvironment(id);
+  }
+}
+
+// ─── Response History ───────────────────────────────────────────────────────
+
+export async function getResponseHistory(requestId: string): Promise<any[]> {
+  if (CollectionService) {
+    return await CollectionService.ListResponses(requestId, 20) ?? [];
+  }
+  return [];
+}
+
+// ─── Fallback ───────────────────────────────────────────────────────────────
+
 async function fetchFallback(payload: any): Promise<ResponseData> {
   const start = performance.now();
   try {

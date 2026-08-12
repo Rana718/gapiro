@@ -18,12 +18,12 @@ import * as $models from "./models.js";
  * FormatJSON takes a JSON string and returns it pretty-printed.
  */
 export function FormatJSON(input: string): $CancellablePromise<string> {
-    return $Call.ByID(3506754260, input);
+    return $Call.ByID(306976396, input);
 }
 
 /**
  * SendRequest executes an HTTP request and returns the response with timing details.
  */
 export function SendRequest(payload: $models.RequestPayload): $CancellablePromise<$models.ResponsePayload> {
-    return $Call.ByID(4118071912, payload);
+    return $Call.ByID(477429584, payload);
 }

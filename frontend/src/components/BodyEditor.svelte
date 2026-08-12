@@ -50,24 +50,17 @@
     {:else}
       <!-- Text-based body (JSON, XML, text, GraphQL) -->
       <div class="relative w-full h-full">
-        <textarea
-          value={request.body}
-          oninput={(e) => { request.body = (e.target as HTMLTextAreaElement).value; }}
-          placeholder={request.bodyType === 'json' ? '{\n  "key": "value"\n}'
-            : request.bodyType === 'graphql' ? 'query {\n  \n}'
-            : request.bodyType === 'xml' ? '<root>\n  \n</root>'
-            : 'Enter request body...'}
-          class="w-full h-full bg-surface-inset text-text text-xs font-mono
-            p-3 resize-none border-0 focus:outline-none
-            placeholder:text-placeholder leading-relaxed"
-          spellcheck="false"
-          autocomplete="off"
-        ></textarea>
-        <!-- Language badge -->
-        <span class="absolute top-2 right-2 px-1.5 py-0.5 text-[9px] uppercase tracking-wider
-          text-text-subtlest bg-surface-highlight rounded font-semibold">
-          {request.bodyType}
-        </span>
+        {#await import('./core/CodeEditor.svelte') then { default: CodeEditor }}
+          <CodeEditor
+            value={request.body}
+            onchange={(v) => { request.body = v; }}
+            language={request.bodyType === 'graphql' ? 'graphql' : request.bodyType}
+            placeholder={request.bodyType === 'json' ? '{\n  "key": "value"\n}'
+              : request.bodyType === 'graphql' ? 'query {\n  \n}'
+              : request.bodyType === 'xml' ? '<root>\n  \n</root>'
+              : 'Enter request body...'}
+          />
+        {/await}
       </div>
     {/if}
   </div>
