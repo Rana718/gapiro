@@ -1,18 +1,18 @@
-// Utility functions used across the app
+import type { Pair, HttpMethod } from './types';
 
-/** Generate a unique ID with prefix */
+/** Generate unique ID with optional prefix */
 export function uid(prefix = ''): string {
-  const rand = Math.random().toString(36).substring(2, 10);
-  const ts = Date.now().toString(36);
-  return prefix ? `${prefix}_${ts}${rand}` : `${ts}${rand}`;
+  const r = Math.random().toString(36).slice(2, 10);
+  const t = Date.now().toString(36);
+  return prefix ? `${prefix}_${t}${r}` : `${t}${r}`;
 }
 
-/** Create an empty KeyValue row */
-export function emptyKV(): import('./types').KeyValue {
-  return { id: uid('kv'), key: '', value: '', enabled: true };
+/** Create empty key-value pair */
+export function emptyPair(): Pair {
+  return { id: uid('p'), name: '', value: '', enabled: true };
 }
 
-/** Format bytes to human readable */
+/** Format bytes */
 export function formatBytes(bytes: number): string {
   if (bytes === 0) return '0 B';
   const k = 1024;
@@ -21,17 +21,17 @@ export function formatBytes(bytes: number): string {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 }
 
-/** Format milliseconds to human readable duration */
+/** Format duration in ms */
 export function formatDuration(ms: number): string {
-  if (ms < 1) return '<1ms';
-  if (ms < 1000) return `${Math.round(ms)}ms`;
-  if (ms < 60000) return `${(ms / 1000).toFixed(2)}s`;
-  return `${(ms / 60000).toFixed(1)}m`;
+  if (ms < 1) return '<1 ms';
+  if (ms < 1000) return `${Math.round(ms)} ms`;
+  if (ms < 60000) return `${(ms / 1000).toFixed(2)} s`;
+  return `${(ms / 60000).toFixed(1)} min`;
 }
 
-/** Get color class for HTTP method */
+/** Get CSS color class for HTTP method */
 export function methodColor(method: string): string {
-  const colors: Record<string, string> = {
+  const map: Record<string, string> = {
     GET: 'text-method-get',
     POST: 'text-method-post',
     PUT: 'text-method-put',
@@ -40,34 +40,54 @@ export function methodColor(method: string): string {
     HEAD: 'text-method-head',
     OPTIONS: 'text-method-options',
   };
-  return colors[method] || 'text-text-secondary';
+  return map[method] ?? 'text-text-subtle';
 }
 
-/** Get status color class */
+/** Get CSS color class for HTTP status */
 export function statusColor(status: number): string {
   if (status >= 200 && status < 300) return 'text-success';
   if (status >= 300 && status < 400) return 'text-info';
   if (status >= 400 && status < 500) return 'text-warning';
-  if (status >= 500) return 'text-error';
-  return 'text-text-secondary';
+  if (status >= 500) return 'text-danger';
+  return 'text-text-subtle';
+}
+
+/** Get background color for status badge */
+export function statusBg(status: number): string {
+  if (status >= 200 && status < 300) return 'bg-success/10';
+  if (status >= 300 && status < 400) return 'bg-info/10';
+  if (status >= 400 && status < 500) return 'bg-warning/10';
+  if (status >= 500) return 'bg-danger/10';
+  return 'bg-surface-highlight';
 }
 
 /** Check if content type is JSON */
-export function isJSON(contentType: string): boolean {
-  return contentType?.includes('json') ?? false;
+export function isJSON(ct: string | null | undefined): boolean {
+  return ct?.includes('json') ?? false;
 }
 
 /** Check if content type is HTML */
-export function isHTML(contentType: string): boolean {
-  return contentType?.includes('html') ?? false;
+export function isHTML(ct: string | null | undefined): boolean {
+  return ct?.includes('html') ?? false;
 }
 
 /** Check if content type is XML */
-export function isXML(contentType: string): boolean {
-  return contentType?.includes('xml') ?? false;
+export function isXML(ct: string | null | undefined): boolean {
+  return ct?.includes('xml') ?? false;
 }
 
-/** Try to pretty-print JSON */
+/** Detect language from content type */
+export function languageFromContentType(ct: string | null | undefined): string {
+  if (!ct) return 'text';
+  if (ct.includes('json')) return 'json';
+  if (ct.includes('html')) return 'html';
+  if (ct.includes('xml')) return 'xml';
+  if (ct.includes('javascript')) return 'javascript';
+  if (ct.includes('css')) return 'css';
+  return 'text';
+}
+
+/** Pretty print JSON (returns original on failure) */
 export function prettyJSON(str: string): string {
   try {
     return JSON.stringify(JSON.parse(str), null, 2);
@@ -76,16 +96,35 @@ export function prettyJSON(str: string): string {
   }
 }
 
-/** Debounce a function */
-export function debounce<T extends (...args: any[]) => any>(fn: T, ms: number): T {
-  let timer: ReturnType<typeof setTimeout>;
-  return ((...args: any[]) => {
-    clearTimeout(timer);
-    timer = setTimeout(() => fn(...args), ms);
-  }) as T;
-}
-
-/** Clamp a number between min and max */
+/** Clamp number */
 export function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
+
+/** Status code reason text */
+export function statusReason(status: number): string {
+  const reasons: Record<number, string> = {
+    200: 'OK', 201: 'Created', 204: 'No Content', 301: 'Moved Permanently',
+    302: 'Found', 304: 'Not Modified', 400: 'Bad Request', 401: 'Unauthorized',
+    403: 'Forbidden', 404: 'Not Found', 405: 'Method Not Allowed',
+    408: 'Request Timeout', 409: 'Conflict', 422: 'Unprocessable Entity',
+    429: 'Too Many Requests', 500: 'Internal Server Error',
+    502: 'Bad Gateway', 503: 'Service Unavailable', 504: 'Gateway Timeout',
+  };
+  return reasons[status] ?? '';
+}
+
+/** Default HTTP methods */
+export const HTTP_METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
+
+/** Default body types for dropdown */
+export const BODY_TYPES = [
+  { id: 'none', label: 'No Body', short: 'Body' },
+  { id: 'json', label: 'JSON', short: 'JSON' },
+  { id: 'xml', label: 'XML', short: 'XML' },
+  { id: 'text', label: 'Plain Text', short: 'Text' },
+  { id: 'form-urlencoded', label: 'Form URL Encoded', short: 'Form' },
+  { id: 'form-data', label: 'Multipart Form', short: 'Multipart' },
+  { id: 'graphql', label: 'GraphQL', short: 'GraphQL' },
+  { id: 'binary', label: 'Binary File', short: 'Binary' },
+] as const;

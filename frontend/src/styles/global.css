@@ -1,30 +1,41 @@
 @import "tailwindcss";
 
-/* Custom theme for Gapiro - dark, GPU-optimized */
-@theme {
-  --color-surface-0: #0c0c0f;
-  --color-surface-1: #111115;
-  --color-surface-2: #1a1a1f;
-  --color-surface-3: #222228;
-  --color-surface-4: #2a2a32;
+@custom-variant dark (&:is([data-appearance="dark"] *));
 
-  --color-border-subtle: #2a2a32;
-  --color-border-default: #333340;
+@theme inline {
+  --font-mono: JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-sans: Inter, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+
+  --color-*: initial;
+  --color-transparent: transparent;
+
+  /* Surfaces */
+  --color-surface: #111115;
+  --color-surface-highlight: #1a1a20;
+  --color-surface-active: #252530;
+  --color-surface-inset: #0c0c0f;
+
+  /* Text */
+  --color-text: #e4e4e7;
+  --color-text-subtle: #a1a1aa;
+  --color-text-subtlest: #52525b;
+  --color-placeholder: #3f3f46;
+
+  /* Borders */
+  --color-border: #2e2e38;
+  --color-border-subtle: #232330;
   --color-border-focus: #6366f1;
 
-  --color-text-primary: #e4e4e7;
-  --color-text-secondary: #a1a1aa;
-  --color-text-muted: #71717a;
-
-  --color-accent: #6366f1;
-  --color-accent-hover: #818cf8;
-  --color-accent-subtle: #6366f11a;
-
+  /* Semantic */
+  --color-primary: #6366f1;
+  --color-primary-hover: #818cf8;
+  --color-danger: #ef4444;
   --color-success: #22c55e;
   --color-warning: #f59e0b;
-  --color-error: #ef4444;
   --color-info: #3b82f6;
+  --color-notice: #a855f7;
 
+  /* Methods */
   --color-method-get: #22c55e;
   --color-method-post: #f59e0b;
   --color-method-put: #3b82f6;
@@ -32,61 +43,86 @@
   --color-method-delete: #ef4444;
   --color-method-head: #06b6d4;
   --color-method-options: #ec4899;
+
+  /* Sizing */
+  --height-xs: 1.75rem;
+  --height-sm: 2rem;
+  --height-md: 2.25rem;
+
+  /* Shadows */
+  --shadow: 0 4px 12px rgba(0,0,0,0.4);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.5);
 }
 
-/* GPU compositing hints for smooth rendering on Wayland */
 @layer base {
   *, *::before, *::after {
     box-sizing: border-box;
+    border-color: var(--color-border);
   }
 
   html, body, #app {
-    @apply m-0 p-0 w-full h-full overflow-hidden;
-    background: var(--color-surface-1);
-    color: var(--color-text-primary);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    @apply m-0 p-0 w-full h-full overflow-hidden bg-surface text-text;
+    font-family: var(--font-sans);
     font-size: 13px;
     line-height: 1.5;
+    font-variant-ligatures: none;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    /* Force GPU layer for root */
-    will-change: transform;
   }
 
-  /* Scrollbar styling */
+  ::selection {
+    background: rgba(99, 102, 241, 0.2);
+  }
+
+  /* App-like behavior: disable text selection except in inputs */
+  :not(input):not(textarea):not([contenteditable]) {
+    user-select: none;
+    cursor: default;
+  }
+
+  input, textarea {
+    user-select: text;
+    cursor: text;
+  }
+
+  button, [role="button"] {
+    cursor: pointer;
+  }
+
+  /* Scrollbars */
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 7px;
+    height: 7px;
   }
   ::-webkit-scrollbar-track {
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: var(--color-border-default);
-    border-radius: 3px;
+    background: var(--color-text-subtlest);
+    border-radius: 4px;
+    opacity: 0.4;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: var(--color-text-muted);
+    opacity: 0.7;
+  }
+  ::-webkit-scrollbar-corner {
+    background: transparent;
   }
 
-  /* Focus rings */
-  :focus-visible {
-    outline: 1.5px solid var(--color-border-focus);
-    outline-offset: -1px;
-    border-radius: 4px;
-  }
-
-  /* Selection */
-  ::selection {
-    background: var(--color-accent-subtle);
+  .hide-scrollbars::-webkit-scrollbar {
+    display: none;
   }
 }
 
-/* Utility for GPU-composited panels (prevents repaint on resize) */
 @layer utilities {
-  .gpu-layer {
+  .gpu {
     transform: translateZ(0);
     will-change: transform;
     backface-visibility: hidden;
+  }
+  .transition-grid {
+    transition: grid-template 150ms ease;
   }
 }

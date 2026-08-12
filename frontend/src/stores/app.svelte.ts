@@ -1,122 +1,155 @@
-// Reactive stores for the application state (Svelte 5 runes)
-import { uid, emptyKV } from '../lib/utils';
-import type { KeyValue, HttpMethod, BodyType, RequestTab, ResponseTab, ResponsePayload, SavedRequest, Folder } from '../lib/types';
+import { uid, emptyPair } from '../lib/utils';
+import type {
+  Pair, HttpMethod, BodyType, RequestTab, ResponseTab, ResponseViewMode,
+  AuthType, AuthConfig, RequestConfig, RequestSettings, ResponseData, ResponseState, Folder
+} from '../lib/types';
 
-// ─── Request State ────────────────────────────────────────────────────
+// ─── Request State ────────────────────────────────────────────────────────────
 
-export const requestState = $state({
+function defaultSettings(): RequestSettings {
+  return { timeout: 30, followRedirects: true, verifySSL: true, maxRedirects: 10 };
+}
+
+function defaultAuth(): AuthConfig {
+  return { type: 'none' };
+}
+
+export const request = $state({
   method: 'GET' as HttpMethod,
   url: '',
-  headers: [emptyKV()] as KeyValue[],
-  queryParams: [emptyKV()] as KeyValue[],
+  headers: [emptyPair()] as Pair[],
+  urlParameters: [emptyPair()] as Pair[],
   bodyType: 'none' as BodyType,
   body: '',
-  formData: [emptyKV()] as KeyValue[],
-  timeout: 30,
-  followRedirects: true,
-  verifySSL: true,
+  formData: [emptyPair()] as Pair[],
+  auth: defaultAuth(),
+  settings: defaultSettings(),
+  description: '',
+  name: '',
 });
 
-// ─── Response State ───────────────────────────────────────────────────
+// ─── Response State ───────────────────────────────────────────────────────────
 
-export const responseState = $state({
+export const response: ResponseState = $state({
   loading: false,
-  response: null as ResponsePayload | null,
-  error: null as string | null,
+  data: null,
+  error: null,
 });
 
-// ─── UI State ─────────────────────────────────────────────────────────
+// ─── UI State ─────────────────────────────────────────────────────────────────
 
-export const uiState = $state({
-  activeRequestTab: 'params' as RequestTab,
+export const ui = $state({
+  activeRequestTab: 'body' as RequestTab,
   activeResponseTab: 'body' as ResponseTab,
-  sidebarWidth: 240,
-  sidebarCollapsed: false,
-  splitRatio: 0.5, // request/response split
-  responseBodyPretty: true,
+  responseViewMode: 'pretty' as ResponseViewMode,
+  sidebarWidth: 250,
+  sidebarHidden: false,
+  splitRatio: 0.5,
+  splitLayout: 'vertical' as 'horizontal' | 'vertical',
 });
 
-// ─── Collection State ─────────────────────────────────────────────────
+// ─── Collection State ─────────────────────────────────────────────────────────
 
-export const collectionState = $state({
-  requests: [] as SavedRequest[],
+export const collection = $state({
+  requests: [] as RequestConfig[],
   folders: [] as Folder[],
   activeRequestId: null as string | null,
 });
 
-// ─── Actions ──────────────────────────────────────────────────────────
+// ─── Actions ──────────────────────────────────────────────────────────────────
 
 export function resetRequest() {
-  requestState.method = 'GET';
-  requestState.url = '';
-  requestState.headers = [emptyKV()];
-  requestState.queryParams = [emptyKV()];
-  requestState.bodyType = 'none';
-  requestState.body = '';
-  requestState.formData = [emptyKV()];
-  requestState.timeout = 30;
-  requestState.followRedirects = true;
-  requestState.verifySSL = true;
+  request.method = 'GET';
+  request.url = '';
+  request.headers = [emptyPair()];
+  request.urlParameters = [emptyPair()];
+  request.bodyType = 'none';
+  request.body = '';
+  request.formData = [emptyPair()];
+  request.auth = defaultAuth();
+  request.settings = defaultSettings();
+  request.description = '';
+  request.name = '';
+  collection.activeRequestId = null;
 }
 
-export function loadRequest(saved: SavedRequest) {
-  requestState.method = saved.method;
-  requestState.url = saved.url;
-  requestState.headers = [...saved.headers, emptyKV()];
-  requestState.queryParams = [...saved.queryParams, emptyKV()];
-  requestState.bodyType = saved.bodyType;
-  requestState.body = saved.body;
-  requestState.formData = [...saved.formData, emptyKV()];
-  collectionState.activeRequestId = saved.id;
+export function loadRequest(saved: RequestConfig) {
+  request.method = saved.method;
+  request.url = saved.url;
+  request.headers = [...saved.headers, emptyPair()];
+  request.urlParameters = [...saved.urlParameters, emptyPair()];
+  request.bodyType = saved.bodyType;
+  request.body = saved.body;
+  request.formData = [...saved.formData, emptyPair()];
+  request.auth = { ...saved.auth };
+  request.settings = { ...saved.settings };
+  request.description = saved.description;
+  request.name = saved.name;
+  collection.activeRequestId = saved.id;
 }
 
 export function saveCurrentRequest(name?: string) {
-  const existing = collectionState.requests.find(r => r.id === collectionState.activeRequestId);
+  const existing = collection.requests.find(r => r.id === collection.activeRequestId);
+  const cleanPairs = (pairs: Pair[]) => pairs.filter(p => p.name !== '');
 
   if (existing) {
-    existing.method = requestState.method;
-    existing.url = requestState.url;
-    existing.headers = requestState.headers.filter(h => h.key !== '');
-    existing.queryParams = requestState.queryParams.filter(p => p.key !== '');
-    existing.bodyType = requestState.bodyType;
-    existing.body = requestState.body;
-    existing.formData = requestState.formData.filter(f => f.key !== '');
-    existing.updatedAt = Date.now();
+    Object.assign(existing, {
+      name: name ?? existing.name,
+      method: request.method,
+      url: request.url,
+      headers: cleanPairs(request.headers),
+      urlParameters: cleanPairs(request.urlParameters),
+      bodyType: request.bodyType,
+      body: request.body,
+      formData: cleanPairs(request.formData),
+      auth: { ...request.auth },
+      settings: { ...request.settings },
+      description: request.description,
+      updatedAt: Date.now(),
+    });
   } else {
-    const newReq: SavedRequest = {
+    const newReq: RequestConfig = {
       id: uid('rq'),
-      name: name || requestState.url || 'Untitled Request',
-      method: requestState.method,
-      url: requestState.url,
-      headers: requestState.headers.filter(h => h.key !== ''),
-      queryParams: requestState.queryParams.filter(p => p.key !== ''),
-      bodyType: requestState.bodyType,
-      body: requestState.body,
-      formData: requestState.formData.filter(f => f.key !== ''),
+      name: name ?? (request.name || request.url || 'Untitled'),
+      method: request.method,
+      url: request.url,
+      headers: cleanPairs(request.headers),
+      urlParameters: cleanPairs(request.urlParameters),
+      bodyType: request.bodyType,
+      body: request.body,
+      formData: cleanPairs(request.formData),
+      auth: { ...request.auth },
+      settings: { ...request.settings },
+      description: request.description,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
-    collectionState.requests.push(newReq);
-    collectionState.activeRequestId = newReq.id;
+    collection.requests.push(newReq);
+    collection.activeRequestId = newReq.id;
   }
 }
 
 export function deleteRequest(id: string) {
-  const idx = collectionState.requests.findIndex(r => r.id === id);
+  const idx = collection.requests.findIndex(r => r.id === id);
   if (idx !== -1) {
-    collectionState.requests.splice(idx, 1);
-    if (collectionState.activeRequestId === id) {
-      collectionState.activeRequestId = null;
-      resetRequest();
-    }
+    collection.requests.splice(idx, 1);
+    if (collection.activeRequestId === id) resetRequest();
   }
 }
 
+export function duplicateRequest(id: string) {
+  const orig = collection.requests.find(r => r.id === id);
+  if (!orig) return;
+  const dup: RequestConfig = {
+    ...structuredClone(orig),
+    id: uid('rq'),
+    name: `${orig.name} (copy)`,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  };
+  collection.requests.push(dup);
+}
+
 export function createFolder(name: string, parentId?: string) {
-  collectionState.folders.push({
-    id: uid('fl'),
-    name,
-    parentId,
-    expanded: true,
-  });
+  collection.folders.push({ id: uid('fl'), name, parentId, expanded: true });
 }

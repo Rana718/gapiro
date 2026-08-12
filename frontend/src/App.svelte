@@ -1,205 +1,89 @@
 <!--
   App.svelte - Root application layout.
-  Structure: TitleBar → Sidebar | (RequestPane / ResponsePane)
-  GPU-composited panels with resizable splits.
+  Structure: Sidebar | (RequestPane / ResponsePane) split layout.
+  GPU-composited, optimized for Wayland/Hyprland.
 -->
 <script lang="ts">
-  import { requestState, responseState } from './stores/app.svelte';
-  import type { ResponsePayload } from './lib/types';
-  import TitleBar from './components/TitleBar.svelte';
+  import { ui } from './stores/app.svelte';
+  import { sendRequest, cancelRequest } from './lib/http';
+  import SidebarLayout from './components/core/SidebarLayout.svelte';
+  import SplitLayout from './components/core/SplitLayout.svelte';
   import Sidebar from './components/Sidebar.svelte';
   import RequestPane from './components/RequestPane.svelte';
-  import ResponsePane from './components/ResponsePane.svelte';
-  import ResizablePanel from './components/ResizablePanel.svelte';
+  import ResponsePane from './components/response/ResponsePane.svelte';
 
-  // Import the Wails-generated binding for HttpService
-  // This will be available after `wails3 generate bindings`
-  let HttpService: any;
-  try {
-    // Dynamic import - bindings generated at build time
-    import('../bindings/changeme').then(mod => {
-      HttpService = mod.HttpService;
-    });
-  } catch {
-    // Fallback: will be available when bindings are generated
-  }
-
-  async function sendRequest() {
-    if (!requestState.url) return;
-    if (responseState.loading) return;
-
-    responseState.loading = true;
-    responseState.error = null;
-
-    try {
-      const payload = {
-        method: requestState.method,
-        url: requestState.url,
-        headers: requestState.headers.filter(h => h.key !== ''),
-        queryParams: requestState.queryParams.filter(p => p.key !== ''),
-        bodyType: requestState.bodyType,
-        body: requestState.body,
-        formData: requestState.formData.filter(f => f.key !== ''),
-        timeout: requestState.timeout,
-        followRedirects: requestState.followRedirects,
-        verifySSL: requestState.verifySSL,
-      };
-
-      let response: ResponsePayload;
-
-      if (HttpService) {
-        response = await HttpService.SendRequest(payload);
-      } else {
-        // Fallback for dev without Wails backend - use fetch
-        response = await devFallbackRequest(payload);
-      }
-
-      if (response.error) {
-        responseState.error = response.error;
-      }
-      responseState.response = response;
-    } catch (err: any) {
-      responseState.error = err?.message || 'Unknown error';
-      responseState.response = null;
-    } finally {
-      responseState.loading = false;
-    }
-  }
-
-  function cancelRequest() {
-    // In a full implementation, this would abort the request via Wails
-    responseState.loading = false;
-  }
-
-  /** Dev fallback using browser fetch (limited but functional for testing UI) */
-  async function devFallbackRequest(payload: any): Promise<ResponsePayload> {
-    const start = performance.now();
-    try {
-      let url = payload.url;
-      if (!url.includes('://')) url = 'http://' + url;
-
-      // Add query params
-      const enabledParams = payload.queryParams.filter((p: any) => p.enabled && p.key);
-      if (enabledParams.length > 0) {
-        const u = new URL(url);
-        enabledParams.forEach((p: any) => u.searchParams.append(p.key, p.value));
-        url = u.toString();
-      }
-
-      const headers: Record<string, string> = {};
-      payload.headers.filter((h: any) => h.enabled && h.key).forEach((h: any) => {
-        headers[h.key] = h.value;
-      });
-
-      const init: RequestInit = {
-        method: payload.method,
-        headers,
-      };
-
-      if (payload.bodyType !== 'none' && !['GET', 'HEAD'].includes(payload.method)) {
-        if (payload.bodyType === 'json' || payload.bodyType === 'text') {
-          init.body = payload.body;
-        }
-      }
-
-      const resp = await fetch(url, init);
-      const body = await resp.text();
-      const duration = performance.now() - start;
-
-      const respHeaders: Record<string, string> = {};
-      resp.headers.forEach((v, k) => { respHeaders[k] = v; });
-
-      return {
-        status: resp.status,
-        statusText: `${resp.status} ${resp.statusText}`,
-        headers: respHeaders,
-        body,
-        size: new Blob([body]).size,
-        duration: Math.round(duration),
-        dnsTime: 0,
-        connectTime: 0,
-        tlsTime: 0,
-        ttfbTime: Math.round(duration * 0.6),
-        protocol: 'HTTP/2',
-        remoteAddr: '',
-        contentType: resp.headers.get('content-type') || '',
-        redirectCount: 0,
-      };
-    } catch (err: any) {
-      return {
-        status: 0,
-        statusText: '',
-        headers: {},
-        body: '',
-        size: 0,
-        duration: Math.round(performance.now() - start),
-        dnsTime: 0,
-        connectTime: 0,
-        tlsTime: 0,
-        ttfbTime: 0,
-        error: err?.message || 'Request failed',
-        protocol: '',
-        remoteAddr: '',
-        contentType: '',
-        redirectCount: 0,
-      };
-    }
-  }
-
-  // Keyboard shortcut: Ctrl+Enter to send
-  function handleGlobalKeydown(e: KeyboardEvent) {
+  // Keyboard shortcuts
+  function handleKeydown(e: KeyboardEvent) {
+    // Ctrl+Enter: Send request
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
       e.preventDefault();
       sendRequest();
     }
+    // Ctrl+N: New request
     if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
       e.preventDefault();
-      // New request shortcut
-      requestState.url = '';
-      requestState.method = 'GET';
+      import('./stores/app.svelte').then(m => m.resetRequest());
+    }
+    // Ctrl+B: Toggle sidebar
+    if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+      e.preventDefault();
+      ui.sidebarHidden = !ui.sidebarHidden;
     }
   }
 </script>
 
-<svelte:document onkeydown={handleGlobalKeydown} />
+<svelte:document onkeydown={handleKeydown} />
 
-<div class="flex flex-col w-full h-full overflow-hidden gpu-layer">
-  <!-- Title Bar -->
-  <TitleBar />
+<div class="flex flex-col w-full h-full overflow-hidden gpu">
+  <!-- Title bar / drag area -->
+  <div
+    class="flex items-center h-9 px-3 bg-surface-inset border-b border-border-subtle shrink-0"
+    style="--wails-draggable: drag"
+  >
+    <div class="flex items-center gap-2">
+      <svg class="w-4 h-4 text-primary" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M13 3L4 14h7l-2 7 9-11h-7l2-7z"/>
+      </svg>
+      <span class="text-[11px] font-semibold text-text-subtle">Gapiro</span>
+    </div>
+    <div class="flex-1"></div>
+    <span class="text-[10px] text-text-subtlest font-mono">Ctrl+Enter to send</span>
+  </div>
 
-  <!-- Main Content: Sidebar | Workspace -->
+  <!-- Main content -->
   <div class="flex-1 overflow-hidden">
-    <ResizablePanel
-      direction="horizontal"
-      initialRatio={0.18}
-      minFirst={180}
-      minSecond={600}
-      storageKey="sidebar"
+    <SidebarLayout
+      width={ui.sidebarWidth}
+      onWidthChange={(w) => { ui.sidebarWidth = w; }}
+      hidden={ui.sidebarHidden}
+      onHiddenChange={(h) => { ui.sidebarHidden = h; }}
     >
-      {#snippet first()}
+      {#snippet sidebar()}
         <Sidebar />
       {/snippet}
 
-      {#snippet second()}
-        <!-- Workspace: Request / Response split -->
-        <div class="flex flex-col h-full p-1.5 gap-1.5 bg-surface-2">
-          <ResizablePanel
-            direction="vertical"
-            initialRatio={0.5}
-            minFirst={200}
-            minSecond={150}
-            storageKey="req-res"
+      {#snippet children()}
+        <div class="h-full p-1.5">
+          <SplitLayout
+            layout="vertical"
+            storageKey="request-response"
+            defaultRatio={0.5}
+            minPx={150}
           >
             {#snippet first()}
-              <RequestPane onSend={sendRequest} onCancel={cancelRequest} />
+              <div class="h-full pb-0.5">
+                <RequestPane onSend={sendRequest} onCancel={cancelRequest} />
+              </div>
             {/snippet}
 
             {#snippet second()}
-              <ResponsePane />
+              <div class="h-full pt-0.5">
+                <ResponsePane />
+              </div>
             {/snippet}
-          </ResizablePanel>
+          </SplitLayout>
         </div>
       {/snippet}
-    </ResizablePanel>
+    </SidebarLayout>
   </div>
 </div>

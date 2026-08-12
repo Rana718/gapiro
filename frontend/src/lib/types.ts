@@ -1,26 +1,62 @@
-// Types shared across the application
+// ─── Core Types ─────────────────────────────────────────────────────────────
 
-export interface KeyValue {
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
+
+export type BodyType = 'none' | 'json' | 'xml' | 'text' | 'form-urlencoded' | 'form-data' | 'graphql' | 'binary';
+
+export type RequestTab = 'body' | 'params' | 'headers' | 'auth' | 'settings' | 'description';
+
+export type ResponseTab = 'body' | 'request' | 'headers' | 'cookies' | 'timeline';
+
+export type ResponseViewMode = 'pretty' | 'raw';
+
+export type AuthType = 'none' | 'basic' | 'bearer' | 'api-key';
+
+// ─── Data Structures ────────────────────────────────────────────────────────
+
+export interface Pair {
   id: string;
-  key: string;
+  name: string;
   value: string;
   enabled: boolean;
+  readOnly?: boolean;
 }
 
-export interface RequestPayload {
-  method: string;
+export interface AuthConfig {
+  type: AuthType;
+  basic?: { username: string; password: string };
+  bearer?: { token: string; prefix: string };
+  apiKey?: { key: string; value: string; addTo: 'header' | 'query' };
+}
+
+// ─── Request/Response ───────────────────────────────────────────────────────
+
+export interface RequestConfig {
+  id: string;
+  name: string;
+  method: HttpMethod;
   url: string;
-  headers: KeyValue[];
-  queryParams: KeyValue[];
+  headers: Pair[];
+  urlParameters: Pair[];
   bodyType: BodyType;
   body: string;
-  formData: KeyValue[];
+  formData: Pair[];
+  auth: AuthConfig;
+  settings: RequestSettings;
+  description: string;
+  folderId?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface RequestSettings {
   timeout: number;
   followRedirects: boolean;
   verifySSL: boolean;
+  maxRedirects: number;
 }
 
-export interface ResponsePayload {
+export interface ResponseData {
   status: number;
   statusText: string;
   headers: Record<string, string>;
@@ -38,32 +74,26 @@ export interface ResponsePayload {
   redirectCount: number;
 }
 
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
-
-export type BodyType = 'none' | 'json' | 'text' | 'form-urlencoded' | 'form-data' | 'binary';
-
-export type RequestTab = 'params' | 'headers' | 'body' | 'auth' | 'settings';
-
-export type ResponseTab = 'body' | 'headers' | 'timing' | 'info';
-
-export interface SavedRequest {
-  id: string;
-  name: string;
-  method: HttpMethod;
-  url: string;
-  headers: KeyValue[];
-  queryParams: KeyValue[];
-  bodyType: BodyType;
-  body: string;
-  formData: KeyValue[];
-  folderId?: string;
-  createdAt: number;
-  updatedAt: number;
+export interface ResponseState {
+  loading: boolean;
+  data: ResponseData | null;
+  error: string | null;
 }
+
+// ─── Collection ─────────────────────────────────────────────────────────────
 
 export interface Folder {
   id: string;
   name: string;
   parentId?: string;
   expanded: boolean;
+}
+
+// ─── Timeline Events ────────────────────────────────────────────────────────
+
+export interface TimelineEvent {
+  type: 'dns' | 'connect' | 'tls' | 'send_headers' | 'send_body' | 'receive_headers' | 'receive_body' | 'redirect' | 'info';
+  timestamp: number;
+  duration: number;
+  detail?: string;
 }
