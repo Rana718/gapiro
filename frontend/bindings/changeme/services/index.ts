@@ -5,11 +5,13 @@ import * as CollectionService from "./collectionservice.js";
 import * as GraphQLService from "./graphqlservice.js";
 import * as GrpcService from "./grpcservice.js";
 import * as HttpService from "./httpservice.js";
+import * as WebSocketService from "./websocketservice.js";
 export {
     CollectionService,
     GraphQLService,
     GrpcService,
-    HttpService
+    HttpService,
+    WebSocketService
 };
 
 export type {

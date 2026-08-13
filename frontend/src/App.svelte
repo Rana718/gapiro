@@ -1,19 +1,22 @@
 <!--
   App.svelte - Root layout.
-  - No protocol tabs at top. User clicks "+" to create new tab (HTTP/gRPC/GraphQL/WebSocket)
-  - Left panel (sidebar) is closeable via Ctrl+B
-  - Bottom panel (response) is closeable and can be moved to right side
-  - Uses @tabler/icons-svelte for icons
-  - Uses shadcn-svelte Sonner for toasts
+  Titlebar → TabStrip (open requests) → Sidebar | main area.
+  The main area routes to the protocol editor for the active tab
+  (HTTP / GraphQL / gRPC / WebSocket) and pairs it with the response panel
+  (except WebSocket, which owns its full pane). "+" / Ctrl+N opens a new tab.
 -->
 <script lang="ts">
-  import { ui, collection, resetRequest } from './stores/app.svelte';
-  import { sendRequest, cancelRequest } from './lib/http';
+  import { ui, request, tabs, refreshDirty, closeTab } from './stores/app.svelte';
+  import { execute, cancelRequest } from './lib/http';
   import { Toaster } from '@/components/ui/sonner';
   import SidebarLayout from './components/core/SidebarLayout.svelte';
   import SplitLayout from './components/core/SplitLayout.svelte';
   import Sidebar from './components/Sidebar.svelte';
+  import TabStrip from './components/TabStrip.svelte';
   import RequestPane from './components/RequestPane.svelte';
+  import GraphQLPane from './components/protocols/GraphQLPane.svelte';
+  import GrpcPane from './components/protocols/GrpcPane.svelte';
+  import WebSocketPane from './components/protocols/WebSocketPane.svelte';
   import ResponsePane from './components/response/ResponsePane.svelte';
   import NewTabPopup from './components/NewTabPopup.svelte';
   import Icon from './components/core/Icon.svelte';
@@ -22,75 +25,80 @@
   let responsePanelPosition = $state<'bottom' | 'right'>('bottom');
   let responsePanelHidden = $state(false);
 
-  // Keyboard shortcuts
+  const isWebSocket = $derived(request.protocol === 'websocket');
+
+  // Keep each tab's dirty indicator in sync with live edits.
+  $effect(() => { refreshDirty(); });
+
+  /** Run the active request against its backend, revealing the response panel. */
+  function runRequest() {
+    if (!isWebSocket) responsePanelHidden = false;
+    execute();
+  }
   function handleKeydown(e: KeyboardEvent) {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-      e.preventDefault();
-      sendRequest();
-    }
-    if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
-      e.preventDefault();
-      showNewTabPopup = true;
-    }
-    if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
-      e.preventDefault();
-      ui.sidebarHidden = !ui.sidebarHidden;
-    }
-    if (e.key === 'Escape') {
-      showNewTabPopup = false;
-    }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); runRequest(); }
+    else if ((e.ctrlKey || e.metaKey) && e.key === 'n') { e.preventDefault(); showNewTabPopup = true; }
+    else if ((e.ctrlKey || e.metaKey) && e.key === 'w') { e.preventDefault(); if (tabs.activeId) closeTab(tabs.activeId); }
+    else if ((e.ctrlKey || e.metaKey) && e.key === 'b') { e.preventDefault(); ui.sidebarHidden = !ui.sidebarHidden; }
+    else if (e.key === 'Escape' && showNewTabPopup) { showNewTabPopup = false; }
   }
 </script>
 
 <svelte:document onkeydown={handleKeydown} />
 
-<div class="flex flex-col w-full h-full overflow-hidden bg-background text-foreground">
+{#snippet requestEditor()}
+  {#if request.protocol === 'graphql'}
+    <GraphQLPane onSend={runRequest} onCancel={cancelRequest} />
+  {:else if request.protocol === 'grpc'}
+    <GrpcPane onSend={runRequest} onCancel={cancelRequest} />
+  {:else}
+    <RequestPane onSend={runRequest} onCancel={cancelRequest} />
+  {/if}
+{/snippet}
+
+<div class="flex flex-col w-full h-full overflow-hidden bg-surface-inset text-text">
   <!-- Title bar -->
   <div
-    class="flex items-center h-10 px-3 bg-sidebar border-b border-sidebar-border shrink-0 gap-2"
+    class="flex items-center h-10 px-2.5 bg-surface-inset border-b border-border-subtle shrink-0 gap-1"
     style="--wails-draggable: drag"
   >
-    <!-- Sidebar toggle -->
     <button
       type="button"
       onclick={() => { ui.sidebarHidden = !ui.sidebarHidden; }}
-      class="p-1 rounded hover:bg-sidebar-accent text-muted-foreground hover:text-foreground"
+      class="flex items-center justify-center size-7 rounded-md text-text-subtle hover:text-text hover:bg-surface-highlight transition-colors"
       title="Toggle sidebar (Ctrl+B)"
     >
-      <Icon name="layout-sidebar-left-collapse" size={16} />
+      <Icon name={ui.sidebarHidden ? 'layout-sidebar-left-expand' : 'layout-sidebar-left-collapse'} size={16} />
     </button>
 
-    <!-- App title -->
-    <span class="text-xs font-semibold text-muted-foreground select-none">Gapiro</span>
+    <span class="text-xs font-semibold tracking-tight text-text-subtle select-none px-1">Gapiro</span>
 
     <div class="flex-1"></div>
 
-    <!-- New tab button -->
-    <button
-      type="button"
-      onclick={() => { showNewTabPopup = true; }}
-      class="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium
-        text-muted-foreground hover:text-foreground hover:bg-sidebar-accent"
-      title="New request (Ctrl+N)"
-    >
-      <Icon name="plus" size={14} />
-      New
-    </button>
-
-    <!-- Response panel controls -->
-    <button
-      type="button"
-      onclick={() => { responsePanelPosition = responsePanelPosition === 'bottom' ? 'right' : 'bottom'; }}
-      class="p-1 rounded hover:bg-sidebar-accent text-muted-foreground hover:text-foreground"
-      title="Toggle response panel position"
-    >
-      {#if responsePanelPosition === 'bottom'}
-        <Icon name="layout-sidebar-right" size={16} />
-      {:else}
+    {#if !isWebSocket}
+      <button
+        type="button"
+        onclick={() => { responsePanelPosition = responsePanelPosition === 'bottom' ? 'right' : 'bottom'; }}
+        disabled={responsePanelHidden}
+        class="flex items-center justify-center size-7 rounded-md text-text-subtle hover:text-text hover:bg-surface-highlight disabled:opacity-40 transition-colors"
+        title="Response panel: {responsePanelPosition === 'bottom' ? 'move right' : 'move bottom'}"
+      >
+        <Icon name={responsePanelPosition === 'bottom' ? 'layout-sidebar-right' : 'layout-bottombar'} size={16} />
+      </button>
+      <button
+        type="button"
+        onclick={() => { responsePanelHidden = !responsePanelHidden; }}
+        class="flex items-center justify-center size-7 rounded-md transition-colors
+          {responsePanelHidden ? 'text-text-subtle hover:text-text hover:bg-surface-highlight' : 'text-primary bg-primary/10 hover:bg-primary/20'}"
+        title={responsePanelHidden ? 'Show response panel' : 'Hide response panel'}
+      >
         <Icon name="layout-bottombar" size={16} />
-      {/if}
-    </button>
+      </button>
+    {/if}
   </div>
+
+  <!-- Tab strip -->
+  <TabStrip onNew={() => { showNewTabPopup = true; }} />
 
   <!-- Main content -->
   <div class="flex-1 overflow-hidden">
@@ -101,14 +109,17 @@
       onHiddenChange={(h) => { ui.sidebarHidden = h; }}
     >
       {#snippet sidebar()}
-        <Sidebar />
+        <Sidebar onNew={() => { showNewTabPopup = true; }} />
       {/snippet}
 
       {#snippet children()}
         <div class="h-full p-1">
-          {#if responsePanelHidden}
-            <!-- Only request pane -->
-            <RequestPane onSend={sendRequest} onCancel={cancelRequest} />
+          {#if isWebSocket}
+            {#key request.id}
+              <WebSocketPane />
+            {/key}
+          {:else if responsePanelHidden}
+            {@render requestEditor()}
           {:else}
             <SplitLayout
               layout={responsePanelPosition === 'bottom' ? 'vertical' : 'horizontal'}
@@ -118,7 +129,7 @@
             >
               {#snippet first()}
                 <div class="h-full {responsePanelPosition === 'bottom' ? 'pb-0.5' : 'pr-0.5'}">
-                  <RequestPane onSend={sendRequest} onCancel={cancelRequest} />
+                  {@render requestEditor()}
                 </div>
               {/snippet}
 
@@ -138,10 +149,8 @@
   </div>
 </div>
 
-<!-- New tab popup -->
 {#if showNewTabPopup}
   <NewTabPopup onclose={() => { showNewTabPopup = false; }} />
 {/if}
 
-<!-- Toast notifications -->
 <Toaster position="bottom-right" />

@@ -1,5 +1,7 @@
 // ─── Core Types ─────────────────────────────────────────────────────────────
 
+export type Protocol = 'http' | 'graphql' | 'grpc' | 'websocket';
+
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
 
 export type BodyType = 'none' | 'json' | 'xml' | 'text' | 'form-urlencoded' | 'form-data' | 'graphql' | 'binary';
@@ -29,11 +31,31 @@ export interface AuthConfig {
   apiKey?: { key: string; value: string; addTo: 'header' | 'query' };
 }
 
+// ─── Protocol-specific config ─────────────────────────────────────────────────
+
+export interface GraphQLConfig {
+  query: string;
+  variables: string;
+}
+
+export interface GrpcConfig {
+  protoFile: string;
+  importPaths: string[];
+  fullMethod: string;
+  message: string;
+  metadata: Pair[];
+}
+
+export interface WebSocketConfig {
+  protocols: string;
+}
+
 // ─── Request/Response ───────────────────────────────────────────────────────
 
 export interface RequestConfig {
   id: string;
   name: string;
+  protocol: Protocol;
   method: HttpMethod;
   url: string;
   headers: Pair[];
@@ -45,6 +67,9 @@ export interface RequestConfig {
   settings: RequestSettings;
   description: string;
   folderId?: string;
+  graphql?: GraphQLConfig;
+  grpc?: GrpcConfig;
+  websocket?: WebSocketConfig;
   createdAt: number;
   updatedAt: number;
 }
@@ -96,4 +121,24 @@ export interface TimelineEvent {
   timestamp: number;
   duration: number;
   detail?: string;
+}
+
+// ─── Tabs ───────────────────────────────────────────────────────────────────
+
+/** A snapshot of one open tab: the full editable request plus its last response. */
+export interface OpenTab {
+  id: string;
+  protocol: Protocol;
+  request: RequestConfig;
+  response: { data: ResponseData | null; error: string | null };
+  savedId: string | null;
+  dirty: boolean;
+}
+
+// ─── WebSocket ────────────────────────────────────────────────────────────────
+
+export interface WsMessage {
+  direction: 'sent' | 'received' | 'system';
+  data: string;
+  timestamp: number;
 }

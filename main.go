@@ -107,6 +107,7 @@ func main() {
 			application.NewService(&services.CollectionService{}),
 			application.NewService(&services.GrpcService{}),
 			application.NewService(&services.GraphQLService{}),
+			application.NewService(&services.WebSocketService{}),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),

@@ -1,11 +1,12 @@
 <!--
-  NewTabPopup - Popup shown when user clicks "+" to create a new request.
-  Creates a new saved request in the collection and switches to it.
+  NewTabPopup - "Create New" chooser. Picking a protocol opens a fresh draft tab
+  via newDraftTab(), which seeds the correct protocol config so the right editor
+  and backend are used. Keyboard: ↑/↓ to move, Enter to pick, Esc to close.
 -->
 <script lang="ts">
-  import { resetRequest, request, collection, saveCurrentRequest, loadRequest } from '../stores/app.svelte';
-  import { uid, emptyPair } from '../lib/utils';
-  import type { RequestConfig } from '../lib/types';
+  import { newDraftTab } from '../stores/app.svelte';
+  import { PROTOCOL_META } from '../lib/utils';
+  import type { Protocol } from '../lib/types';
   import Icon from './core/Icon.svelte';
 
   interface Props {
@@ -14,94 +15,76 @@
 
   let { onclose }: Props = $props();
 
-  const options = [
-    { id: 'http', label: 'HTTP Request', desc: 'REST API call with any method', icon: 'world', color: 'text-success' },
-    { id: 'graphql', label: 'GraphQL', desc: 'Query or mutation', icon: 'brand-graphql', color: 'text-[#e535ab]' },
-    { id: 'grpc', label: 'gRPC', desc: 'Unary or streaming RPC', icon: 'server', color: 'text-info' },
-    { id: 'websocket', label: 'WebSocket', desc: 'Real-time bidirectional', icon: 'plug-connected', color: 'text-warning' },
+  const options: { id: Protocol; desc: string }[] = [
+    { id: 'http', desc: 'REST call with any method' },
+    { id: 'graphql', desc: 'Query, mutation & schema docs' },
+    { id: 'grpc', desc: 'Unary RPC from a .proto' },
+    { id: 'websocket', desc: 'Live bidirectional stream' },
   ];
 
-  function select(type: string) {
-    // Reset current state
-    resetRequest();
+  let focused = $state(0);
 
-    // Set appropriate defaults based on type
-    const name = type === 'http' ? 'New Request'
-      : type === 'graphql' ? 'New GraphQL Query'
-      : type === 'grpc' ? 'New gRPC Call'
-      : 'New WebSocket';
-
-    request.name = name;
-
-    if (type === 'graphql') {
-      request.method = 'POST';
-      request.bodyType = 'json';
-      request.body = JSON.stringify({
-        query: '{\n  \n}',
-        variables: {}
-      }, null, 2);
-      request.headers = [
-        { id: uid('p'), name: 'Content-Type', value: 'application/json', enabled: true },
-        emptyPair(),
-      ];
-    } else if (type === 'grpc') {
-      request.bodyType = 'json';
-      request.body = '{\n  \n}';
-    }
-
-    // Save to collection immediately so it appears in sidebar
-    const now = Date.now();
-    const newReq: RequestConfig = {
-      id: uid('rq'),
-      name,
-      method: request.method,
-      url: request.url,
-      headers: request.headers.filter(h => h.name !== ''),
-      urlParameters: [],
-      bodyType: request.bodyType,
-      body: request.body,
-      formData: [],
-      auth: { ...request.auth },
-      settings: { ...request.settings },
-      description: '',
-      createdAt: now,
-      updatedAt: now,
-    };
-    collection.requests.push(newReq);
-    collection.activeRequestId = newReq.id;
-
+  function select(protocol: Protocol) {
+    newDraftTab(protocol);
     onclose();
+  }
+
+  function onKeydown(e: KeyboardEvent) {
+    if (e.key === 'Escape') { onclose(); return; }
+    if (e.key === 'ArrowDown') { e.preventDefault(); focused = (focused + 1) % options.length; }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); focused = (focused - 1 + options.length) % options.length; }
+    else if (e.key === 'Enter') { e.preventDefault(); select(options[focused].id); }
   }
 </script>
 
+<svelte:window onkeydown={onKeydown} />
+
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-  class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+  class="fixed inset-0 z-50 flex items-start justify-center pt-[18vh] bg-black/60 backdrop-blur-[2px]"
   onclick={onclose}
-  onkeydown={(e) => { if (e.key === 'Escape') onclose(); }}
 >
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
-    class="w-[380px] bg-popover border border-border rounded-xl shadow-2xl p-4"
+    class="w-[420px] bg-popover border border-border rounded-xl shadow-2xl overflow-hidden"
     onclick={(e) => e.stopPropagation()}
-    onkeydown={(e) => e.stopPropagation()}
+    role="dialog"
+    aria-label="Create new request"
   >
-    <h3 class="text-sm font-semibold text-foreground mb-3">Create New</h3>
-    <div class="flex flex-col gap-1">
-      {#each options as opt (opt.id)}
+    <div class="flex items-center justify-between px-4 h-11 border-b border-border-subtle">
+      <span class="text-[10px] font-semibold uppercase tracking-wider text-text-subtlest">Create new request</span>
+      <button
+        type="button"
+        onclick={onclose}
+        class="flex items-center justify-center size-6 rounded-md text-text-subtlest hover:text-text hover:bg-surface-highlight transition-colors"
+        aria-label="Close"
+      >
+        <Icon name="x" size={14} />
+      </button>
+    </div>
+
+    <div class="p-2">
+      {#each options as opt, i (opt.id)}
+        {@const m = PROTOCOL_META[opt.id]}
+        {@const accent = `var(--color-${m.color})`}
         <button
           type="button"
           onclick={() => select(opt.id)}
-          class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-left
-            hover:bg-accent group"
+          onmouseenter={() => { focused = i; }}
+          class="w-full flex items-center gap-3 px-2.5 py-2.5 rounded-lg text-left transition-colors
+            {focused === i ? 'bg-surface-highlight' : ''}"
         >
-          <div class="p-1.5 rounded-md bg-accent group-hover:bg-background {opt.color}">
-            <Icon name={opt.icon} size={18} />
+          <div
+            class="flex items-center justify-center size-9 rounded-lg shrink-0"
+            style="background: color-mix(in srgb, {accent} 14%, transparent); color: {accent}"
+          >
+            <Icon name={m.icon} size={18} />
           </div>
-          <div>
-            <div class="text-sm font-medium text-foreground">{opt.label}</div>
-            <div class="text-xs text-muted-foreground">{opt.desc}</div>
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-medium text-text">{m.label}</div>
+            <div class="text-xs text-text-subtle truncate">{opt.desc}</div>
           </div>
+          <span class="text-[10px] font-bold font-mono tracking-tight shrink-0" style="color: {accent}">{m.short}</span>
         </button>
       {/each}
     </div>

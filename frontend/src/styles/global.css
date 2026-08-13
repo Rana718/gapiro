@@ -68,6 +68,12 @@
   --color-method-head: #06b6d4;
   --color-method-options: #e879a8;
 
+  /* Protocol accents — the signature through-line */
+  --color-protocol-http: #7c6ef6;
+  --color-protocol-graphql: #e535ab;
+  --color-protocol-grpc: #00b8d4;
+  --color-protocol-websocket: #f5a623;
+
   --height-xs: 1.75rem;
   --height-sm: 2rem;
   --height-md: 2.25rem;

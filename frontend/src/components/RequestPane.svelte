@@ -1,11 +1,11 @@
 <!--
-  RequestPane - Full request editing panel.
-  Structure: UrlBar → Tabs (Body, Params, Headers, Auth, Settings, Info)
+  RequestPane - Full HTTP request editing panel.
+  Structure: CommandBar → Tabs (Body, Params, Headers, Auth, Settings, Info)
 -->
 <script lang="ts">
   import { request, response, ui } from '../stores/app.svelte';
   import type { HttpMethod, RequestTab } from '../lib/types';
-  import UrlBar from './UrlBar.svelte';
+  import CommandBar from './CommandBar.svelte';
   import TabBar from './core/TabBar.svelte';
   import PairEditor from './core/PairEditor.svelte';
   import BodyEditor from './BodyEditor.svelte';
@@ -21,20 +21,22 @@
 
   const headerCount = $derived(request.headers.filter(h => h.name !== '').length);
   const paramCount = $derived(request.urlParameters.filter(p => p.name !== '').length);
+  const authActive = $derived(request.auth.type !== 'none');
 
   const tabs = $derived([
     { id: 'body', label: 'Body' },
     { id: 'params', label: 'Params', badge: paramCount || undefined },
     { id: 'headers', label: 'Headers', badge: headerCount || undefined },
-    { id: 'auth', label: 'Auth' },
+    { id: 'auth', label: 'Auth', badge: authActive ? '•' : undefined },
     { id: 'settings', label: 'Settings' },
     { id: 'description', label: 'Info' },
   ]);
 </script>
 
-<div class="flex flex-col h-full bg-surface rounded-md border border-border-subtle overflow-hidden">
-  <!-- URL Bar -->
-  <UrlBar
+<div class="flex flex-col h-full bg-surface rounded-lg border border-border-subtle overflow-hidden">
+  <!-- Command bar -->
+  <CommandBar
+    protocol="http"
     method={request.method}
     url={request.url}
     loading={response.loading}

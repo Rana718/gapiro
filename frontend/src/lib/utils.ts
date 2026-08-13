@@ -31,6 +31,22 @@ export function formatDuration(ms: number): string {
    return `${(ms / 60000).toFixed(1)} min`;
 }
 
+/** Protocol display metadata — icon, label, accent color, and the send-action verb. */
+export const PROTOCOL_META: Record<
+   string,
+   { label: string; short: string; icon: string; color: string; text: string; action: string }
+> = {
+   http: { label: "HTTP Request", short: "HTTP", icon: "world", color: "protocol-http", text: "text-protocol-http", action: "Send" },
+   graphql: { label: "GraphQL", short: "GQL", icon: "brand-graphql", color: "protocol-graphql", text: "text-protocol-graphql", action: "Query" },
+   grpc: { label: "gRPC", short: "gRPC", icon: "server", color: "protocol-grpc", text: "text-protocol-grpc", action: "Invoke" },
+   websocket: { label: "WebSocket", short: "WS", icon: "plug-connected", color: "protocol-websocket", text: "text-protocol-websocket", action: "Connect" },
+};
+
+/** Metadata for a protocol, falling back to HTTP for unknown values. */
+export function protocolMeta(protocol: string) {
+   return PROTOCOL_META[protocol] ?? PROTOCOL_META.http;
+}
+
 /** Get CSS color class for HTTP method */
 export function methodColor(method: string): string {
    const map: Record<string, string> = {
