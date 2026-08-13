@@ -1,7 +1,6 @@
 <!--
-  ResponseBody - Response viewer with JSON syntax highlighting.
-  Uses lightweight regex-based highlighting (no CodeMirror for read-only).
-  Supports search with match highlighting.
+  ResponseBody - Response viewer with line numbers and JSON syntax highlighting.
+  Matches Postman's dark editor look with proper line numbers.
 -->
 <script lang="ts">
   import { isJSON, isHTML, isXML, languageFromContentType } from '../../lib/utils';
@@ -47,79 +46,85 @@
     return (formattedBody.match(regex) || []).length;
   });
 
-  // Truncate for display
-  const MAX_DISPLAY = 800_000;
-  const displayText = $derived(() => {
-    if (formattedBody.length > MAX_DISPLAY) {
-      return formattedBody.slice(0, MAX_DISPLAY) + `\n\n--- Truncated (${Math.round(formattedBody.length / 1024)} KB total) ---`;
-    }
-    return formattedBody;
+  // Split into lines for line-numbered display
+  const lines = $derived(() => {
+    if (!formattedBody) return [];
+    return formattedBody.split('\n');
   });
 
-  // Generate highlighted HTML
-  const highlightedHtml = $derived(() => {
-    const text = displayText();
-    if (!text) return '';
-
+  // Generate highlighted HTML per line
+  function highlightLine(line: string): string {
     let html: string;
     if (shouldHighlight && !searchQuery) {
-      html = syntaxHighlight(text, language);
+      html = syntaxHighlight(escapeHtml(line), language);
     } else {
-      html = escapeHtml(text);
+      html = escapeHtml(line);
     }
 
-    // Apply search highlighting on top
+    // Apply search highlighting
     if (searchQuery) {
       const escapedQuery = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const regex = new RegExp(`(${escapeHtml(escapedQuery)})`, 'gi');
-      html = html.replace(regex, '<mark class="bg-warning/40 rounded-sm">$1</mark>');
+      const regex = new RegExp(`(${escapedQuery})`, 'gi');
+      html = html.replace(regex, '<mark class="bg-warning/40 rounded-sm px-0.5">$1</mark>');
     }
 
-    return html;
-  });
+    return html || '&nbsp;';
+  }
 </script>
 
-<div class="relative w-full h-full overflow-auto bg-background">
+<div class="relative w-full h-full overflow-auto response-viewer">
   {#if !body}
-    <div class="flex items-center justify-center h-full text-sm text-muted-foreground">
+    <div class="flex items-center justify-center h-full text-sm text-text-subtlest">
       Empty response
     </div>
   {:else if formatting}
-    <div class="flex items-center justify-center h-full text-xs text-muted-foreground">
+    <div class="flex items-center justify-center h-full text-xs text-text-subtlest">
       Formatting...
     </div>
   {:else}
     <!-- Search info -->
     {#if searchQuery}
-      <div class="sticky top-0 z-10 px-3 py-1 bg-muted/90 text-[10px] text-muted-foreground border-b border-border">
+      <div class="sticky top-0 z-10 px-3 py-1 bg-surface-active/90 text-[10px] text-text-subtlest border-b border-border-subtle backdrop-blur-sm">
         {matchCount()} match{matchCount() !== 1 ? 'es' : ''}
       </div>
     {/if}
 
-    <pre class="response-body w-full min-h-full p-3 m-0 text-xs leading-[1.65] whitespace-pre-wrap break-words
-      font-mono text-foreground selection:bg-primary/20">{@html highlightedHtml()}</pre>
+    <!-- Line-numbered body display -->
+    <div class="flex min-h-full">
+      <!-- Line numbers gutter -->
+      <div class="shrink-0 select-none sticky left-0 bg-surface-inset border-r border-border-subtle z-[1]">
+        {#each lines() as _, i}
+          <div class="px-3 py-0 text-right text-[11px] leading-[1.65] font-mono text-text-subtlest/60 h-[18px]">
+            {i + 1}
+          </div>
+        {/each}
+      </div>
+
+      <!-- Code content -->
+      <pre class="response-body flex-1 m-0 p-0 text-xs leading-[1.65] whitespace-pre-wrap break-words
+        font-mono text-text selection:bg-primary/20">{#each lines() as line, i}<div class="px-4 h-[18px]">{@html highlightLine(line)}</div>{/each}</pre>
+    </div>
 
     <!-- Language badge -->
     <span class="absolute top-2 right-4 px-1.5 py-0.5 text-[9px] uppercase tracking-wider
-      text-muted-foreground bg-muted rounded font-semibold pointer-events-none select-none">
+      text-text-subtlest bg-surface-active rounded font-semibold pointer-events-none select-none">
       {language}
     </span>
   {/if}
 </div>
 
-<script context="module" lang="ts">
-  /** Lightweight JSON/XML syntax highlighter */
-  function syntaxHighlight(text: string, lang: string): string {
-    const escaped = escapeHtml(text);
-
+<script module lang="ts">
+  /** Lightweight JSON/XML syntax highlighter (works on already-escaped HTML) */
+  function syntaxHighlight(escaped: string, lang: string): string {
     if (lang === 'json') {
       return escaped
-        // Strings (keys and values)
+        // Keys
         .replace(/(&quot;)((?:[^&]|&(?!quot;))*)(&quot;)\s*:/g,
           '<span class="syn-key">$1$2$3</span>:')
+        // String values after colon
         .replace(/:\s*(&quot;)((?:[^&]|&(?!quot;))*)(&quot;)/g,
           ': <span class="syn-str">$1$2$3</span>')
-        // Standalone strings in arrays
+        // Strings in arrays
         .replace(/(\[|,)\s*(&quot;)((?:[^&]|&(?!quot;))*)(&quot;)/g,
           '$1 <span class="syn-str">$2$3$4</span>')
         // Numbers
@@ -132,11 +137,8 @@
 
     if (lang === 'xml' || lang === 'html') {
       return escaped
-        // Tags
         .replace(/(&lt;\/?)([\w-]+)/g, '$1<span class="syn-tag">$2</span>')
-        // Attributes
         .replace(/([\w-]+)(=)/g, '<span class="syn-attr">$1</span>$2')
-        // Attribute values
         .replace(/(=)(&quot;[^&]*&quot;)/g, '$1<span class="syn-str">$2</span>');
     }
 
@@ -153,10 +155,13 @@
 </script>
 
 <style>
-  :global(.response-body .syn-key) { color: #7c6ef6; }
-  :global(.response-body .syn-str) { color: #30a46c; }
-  :global(.response-body .syn-num) { color: #f5a623; }
-  :global(.response-body .syn-bool) { color: #e5484d; }
-  :global(.response-body .syn-tag) { color: #e5484d; }
-  :global(.response-body .syn-attr) { color: #f5a623; }
+  .response-viewer {
+    background: var(--color-surface-inset);
+  }
+  :global(.response-body .syn-key) { color: #c4b5fd; }
+  :global(.response-body .syn-str) { color: #6ee7b7; }
+  :global(.response-body .syn-num) { color: #fbbf24; }
+  :global(.response-body .syn-bool) { color: #f87171; }
+  :global(.response-body .syn-tag) { color: #f87171; }
+  :global(.response-body .syn-attr) { color: #fbbf24; }
 </style>

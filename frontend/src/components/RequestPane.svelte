@@ -32,11 +32,6 @@
     { id: 'scripts', label: 'Scripts' },
     { id: 'settings', label: 'Settings' },
   ]);
-
-  // Older tabs may still point at the removed Info view.
-  $effect(() => {
-    if (ui.activeRequestTab === 'description') ui.activeRequestTab = 'body';
-  });
 </script>
 
 <div class="flex flex-col h-full bg-surface rounded-lg border border-border-subtle overflow-hidden">

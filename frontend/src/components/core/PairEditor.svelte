@@ -1,11 +1,13 @@
 <!--
   PairEditor - Core name/value pair editor with enable/disable, add/remove.
   Used for headers, query params, form data.
+  Uses shadcn Checkbox for consistent styling.
 -->
 <script lang="ts">
   import type { Pair } from '../../lib/types';
   import { emptyPair } from '../../lib/utils';
   import Icon from './Icon.svelte';
+  import { Checkbox } from '../ui/checkbox/index';
 
   interface Props {
     pairs: Pair[];
@@ -17,7 +19,7 @@
 
   let {
     pairs,
-    namePlaceholder = 'Name',
+    namePlaceholder = 'Key',
     valuePlaceholder = 'Value',
     onchange,
     class: className = '',
@@ -56,7 +58,7 @@
 
 <div class="flex flex-col w-full overflow-y-auto {className}">
   <!-- Header row -->
-  <div class="grid grid-cols-[26px_1fr_1fr_26px] gap-1 px-3 py-2
+  <div class="grid grid-cols-[32px_1fr_1fr_32px] gap-1 px-3 py-2
     text-[10px] uppercase tracking-wider text-text-subtlest font-semibold border-b border-border-subtle">
     <span></span>
     <span>{namePlaceholder}</span>
@@ -64,24 +66,18 @@
     <span></span>
   </div>
 
-  <div class="px-3 py-2 text-[11px] text-text-subtlest border-b border-border-subtle bg-surface-inset">
-    Enabled rows are sent with the request. Add values inline; empty rows are ignored.
-  </div>
-
   <!-- Rows -->
   {#each pairs as pair, i (pair.id)}
-    <div class="grid grid-cols-[26px_1fr_1fr_26px] gap-1 px-3 py-[3px] items-center group
-      hover:bg-surface-highlight/50 transition-colors duration-50">
+    <div class="grid grid-cols-[32px_1fr_1fr_32px] gap-1 px-3 py-[5px] items-center group
+      hover:bg-surface-highlight/50 transition-colors border-b border-border-subtle/40">
       <!-- Checkbox -->
-      <label class="flex items-center justify-center">
-        <input
-          type="checkbox"
+      <div class="flex items-center justify-center">
+        <Checkbox
           checked={pair.enabled}
-          onchange={() => toggle(i)}
-          class="w-3 h-3 rounded-sm border border-border bg-surface-inset
-            checked:bg-primary checked:border-primary accent-primary cursor-pointer"
+          onCheckedChange={() => toggle(i)}
+          class="size-3.5"
         />
-      </label>
+      </div>
 
       <!-- Name -->
       <input
@@ -90,7 +86,7 @@
         placeholder={namePlaceholder}
         readonly={pair.readOnly}
         oninput={(e) => updateName(i, (e.target as HTMLInputElement).value)}
-        class="w-full bg-transparent px-2 py-1 text-xs text-text rounded
+        class="w-full bg-transparent px-2 py-1.5 text-xs text-text rounded
           placeholder:text-placeholder focus:outline-none focus:bg-surface-highlight
           border-0 font-mono
           {!pair.enabled ? 'opacity-40' : ''}
@@ -104,7 +100,7 @@
         value={pair.value}
         placeholder={valuePlaceholder}
         oninput={(e) => updateValue(i, (e.target as HTMLInputElement).value)}
-        class="w-full bg-transparent px-2 py-1 text-xs text-text rounded
+        class="w-full bg-transparent px-2 py-1.5 text-xs text-text rounded
           placeholder:text-placeholder focus:outline-none focus:bg-surface-highlight
           border-0 font-mono
           {!pair.enabled ? 'opacity-40' : ''}"
@@ -113,10 +109,11 @@
 
       <!-- Delete -->
       <button
+        type="button"
         onclick={() => remove(i)}
-        class="flex items-center justify-center w-5 h-5 rounded
-          text-text-subtlest opacity-60 group-hover:opacity-100
-          hover:text-danger hover:bg-danger/10 transition-all duration-50"
+        class="flex items-center justify-center size-6 rounded
+          text-text-subtlest opacity-0 group-hover:opacity-100
+          hover:text-danger hover:bg-danger/10 transition-opacity"
         aria-label="Remove"
       >
         <Icon name="x" size={12} />

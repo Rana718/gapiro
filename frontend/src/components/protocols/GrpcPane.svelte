@@ -135,6 +135,7 @@
             class="absolute top-full left-0 right-0 mt-1 z-50 max-h-64 overflow-y-auto py-1
               bg-surface-active border border-border rounded-lg shadow-xl"
             onclick={(e) => e.stopPropagation()}
+            onkeydown={(e) => { if (e.key === 'Escape') methodOpen = false; }}
             role="listbox"
             tabindex="-1"
           >

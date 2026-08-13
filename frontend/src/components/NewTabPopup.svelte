@@ -39,17 +39,19 @@
 
 <svelte:window onkeydown={onKeydown} />
 
-<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
   class="fixed inset-0 z-50 flex items-start justify-center pt-[18vh] bg-black/60 backdrop-blur-[2px]"
   onclick={onclose}
+  onkeydown={onKeydown}
+  role="presentation"
 >
-  <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
     class="w-[420px] bg-popover border border-border rounded-xl shadow-2xl overflow-hidden"
     onclick={(e) => e.stopPropagation()}
+    onkeydown={(e) => e.stopPropagation()}
     role="dialog"
     aria-label="Create new request"
+    tabindex="-1"
   >
     <div class="flex items-center justify-between px-4 h-11 border-b border-border-subtle">
       <span class="text-[10px] font-semibold uppercase tracking-wider text-text-subtlest">Create new request</span>
