@@ -41,7 +41,7 @@
   }
 
   function remove(i: number) {
-    if (pairs.length <= 1) return;
+    if (pairs.length <= 1) { pairs[0].name = ''; pairs[0].value = ''; onchange(pairs); return; }
     pairs.splice(i, 1);
     onchange(pairs);
   }
@@ -56,12 +56,16 @@
 
 <div class="flex flex-col w-full overflow-y-auto {className}">
   <!-- Header row -->
-  <div class="grid grid-cols-[26px_1fr_1fr_26px] gap-1 px-3 py-1.5
+  <div class="grid grid-cols-[26px_1fr_1fr_26px] gap-1 px-3 py-2
     text-[10px] uppercase tracking-wider text-text-subtlest font-semibold border-b border-border-subtle">
     <span></span>
     <span>{namePlaceholder}</span>
     <span>{valuePlaceholder}</span>
     <span></span>
+  </div>
+
+  <div class="px-3 py-2 text-[11px] text-text-subtlest border-b border-border-subtle bg-surface-inset">
+    Enabled rows are sent with the request. Add values inline; empty rows are ignored.
   </div>
 
   <!-- Rows -->
@@ -111,7 +115,7 @@
       <button
         onclick={() => remove(i)}
         class="flex items-center justify-center w-5 h-5 rounded
-          text-text-subtlest opacity-0 group-hover:opacity-100
+          text-text-subtlest opacity-60 group-hover:opacity-100
           hover:text-danger hover:bg-danger/10 transition-all duration-50"
         aria-label="Remove"
       >

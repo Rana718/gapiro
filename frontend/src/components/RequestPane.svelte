@@ -24,13 +24,17 @@
   const authActive = $derived(request.auth.type !== 'none');
 
   const tabs = $derived([
-    { id: 'body', label: 'Body' },
-    { id: 'params', label: 'Params', badge: paramCount || undefined },
+    { id: 'params', label: 'Query', badge: paramCount || undefined },
     { id: 'headers', label: 'Headers', badge: headerCount || undefined },
+    { id: 'body', label: 'Body' },
     { id: 'auth', label: 'Auth', badge: authActive ? '•' : undefined },
     { id: 'settings', label: 'Settings' },
-    { id: 'description', label: 'Info' },
   ]);
+
+  // Older tabs may still point at the removed Info view.
+  $effect(() => {
+    if (ui.activeRequestTab === 'description') ui.activeRequestTab = 'body';
+  });
 </script>
 
 <div class="flex flex-col h-full bg-surface rounded-lg border border-border-subtle overflow-hidden">
@@ -75,25 +79,6 @@
       <AuthEditor />
     {:else if ui.activeRequestTab === 'settings'}
       <SettingsEditor />
-    {:else if ui.activeRequestTab === 'description'}
-      <div class="p-3 flex flex-col gap-3 h-full overflow-y-auto">
-        <input
-          type="text"
-          value={request.name}
-          oninput={(e) => { request.name = (e.target as HTMLInputElement).value; }}
-          placeholder="Request Name"
-          class="w-full bg-transparent text-lg font-semibold text-text
-            placeholder:text-placeholder border-0 focus:outline-none px-0"
-        />
-        <textarea
-          value={request.description}
-          oninput={(e) => { request.description = (e.target as HTMLTextAreaElement).value; }}
-          placeholder="Add a description..."
-          class="flex-1 w-full bg-surface-inset text-xs text-text font-mono
-            p-3 rounded-md border border-border-subtle resize-none
-            placeholder:text-placeholder focus:outline-none focus:border-border-focus"
-        ></textarea>
-      </div>
     {/if}
   </div>
 </div>

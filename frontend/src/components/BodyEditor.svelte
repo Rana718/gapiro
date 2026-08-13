@@ -32,7 +32,9 @@
 
 <div class="flex flex-col h-full">
   <!-- Body type selector -->
-  <div class="flex items-center gap-1 px-3 py-1.5 border-b border-border-subtle shrink-0">
+  <div class="flex items-center justify-between px-3 py-2 border-b border-border-subtle shrink-0 bg-surface-inset">
+    <span class="text-[10px] font-semibold uppercase tracking-wider text-text-subtlest">Payload</span>
+    <div class="flex items-center gap-1">
     {#each bodyTypes as bt (bt.id)}
       <button
         type="button"
@@ -45,13 +47,15 @@
         {bt.label}
       </button>
     {/each}
+    </div>
   </div>
 
   <!-- Body content -->
   <div class="flex-1 overflow-hidden">
     {#if request.bodyType === 'none'}
-      <div class="flex items-center justify-center h-full text-text-subtlest text-sm">
-        This request does not have a body
+      <div class="flex flex-col items-center justify-center h-full gap-2 text-text-subtlest text-sm">
+        <span class="text-text-subtle">No request body</span>
+        <span class="text-xs">Choose a payload type above to add data.</span>
       </div>
     {:else if request.bodyType === 'form-urlencoded' || request.bodyType === 'form-data'}
       <PairEditor

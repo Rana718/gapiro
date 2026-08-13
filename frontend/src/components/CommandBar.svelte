@@ -48,8 +48,8 @@
 
 <form onsubmit={submit} class="flex items-stretch gap-2 px-3 py-2.5">
   <div
-    class="flex items-stretch flex-1 min-w-0 h-9 rounded-lg border border-border
-      bg-surface-inset focus-within:border-border-focus transition-colors duration-100 overflow-hidden"
+    class="relative flex items-stretch flex-1 min-w-0 h-9 rounded-lg border border-border
+      bg-surface-inset focus-within:border-border-focus transition-colors duration-100"
   >
     <!-- Leading chip -->
     {#if protocol === 'http'}
@@ -72,7 +72,7 @@
       oninput={(e) => onUrlChange((e.target as HTMLInputElement).value)}
       onkeydown={onKeydown}
       {placeholder}
-      class="flex-1 min-w-0 bg-transparent px-3 text-xs text-text font-mono
+      class="flex-1 min-w-0 rounded-r-lg bg-transparent px-3 text-xs text-text font-mono
         placeholder:text-placeholder border-0 focus:outline-none"
       spellcheck="false"
       autocomplete="off"
