@@ -41,6 +41,8 @@ export function newRequestConfig(protocol: Protocol, name?: string): RequestConf
     auth: defaultAuth(),
     settings: defaultSettings(),
     description: '',
+    preRequestScript: '',
+    postResponseScript: '',
     createdAt: now,
     updatedAt: now,
   };
@@ -153,6 +155,8 @@ function migrateConfig(c: any): RequestConfig {
     formData: c.formData ?? [],
     auth: c.auth ?? defaultAuth(),
     settings: c.settings ?? defaultSettings(),
+    preRequestScript: c.preRequestScript ?? '',
+    postResponseScript: c.postResponseScript ?? '',
   };
 }
 
@@ -202,6 +206,8 @@ function hydrateLiveRequest(cfg: RequestConfig) {
   request.auth = structuredClone($state.snapshot(cfg.auth) ?? defaultAuth());
   request.settings = { ...cfg.settings };
   request.description = cfg.description;
+  request.preRequestScript = cfg.preRequestScript ?? '';
+  request.postResponseScript = cfg.postResponseScript ?? '';
   request.folderId = cfg.folderId;
   request.graphql = cfg.graphql ? { ...cfg.graphql } : undefined;
   request.grpc = cfg.grpc
@@ -328,6 +334,8 @@ export function saveCurrentRequest(name?: string) {
     auth: structuredClone($state.snapshot(request.auth)),
     settings: { ...request.settings },
     description: request.description,
+    preRequestScript: request.preRequestScript,
+    postResponseScript: request.postResponseScript,
     folderId: request.folderId,
     graphql: request.graphql ? { ...request.graphql } : undefined,
     grpc: request.grpc

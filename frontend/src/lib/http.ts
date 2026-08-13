@@ -34,7 +34,7 @@ let activeRequestId: string | null = null;
 /** Build a full ResponseData from a partial, filling the timing/meta fields. */
 function makeResponseData(p: Partial<ResponseData>): ResponseData {
   return {
-    status: 0, statusText: '', headers: {}, body: '', size: 0,
+    status: 0, statusText: '', headers: {}, body: '',
     duration: 0, dnsTime: 0, connectTime: 0, tlsTime: 0, ttfbTime: 0,
     protocol: '', remoteAddr: '', contentType: '', redirectCount: 0,
     ...p,
@@ -74,18 +74,30 @@ export async function sendRequest(): Promise<void> {
     if (generation === requestGeneration && response.loading) cancelRequest();
   }, Math.max(60000, (request.settings.timeout || 30) * 1000 + 5000));
 
+  const outgoingHeaders = request.headers.filter(h => h.name !== '').map(h => ({ key: h.name, value: h.value, enabled: h.enabled }));
+  const outgoingParams = request.urlParameters.filter(p => p.name !== '').map(p => ({ key: p.name, value: p.value, enabled: p.enabled }));
+  if (request.auth.type === 'basic' && request.auth.basic) {
+    outgoingHeaders.push({ key: 'Authorization', value: `Basic ${btoa(`${request.auth.basic.username}:${request.auth.basic.password}`)}`, enabled: true });
+  } else if (request.auth.type === 'bearer' && request.auth.bearer?.token) {
+    outgoingHeaders.push({ key: 'Authorization', value: `${request.auth.bearer.prefix || 'Bearer'} ${request.auth.bearer.token}`, enabled: true });
+  } else if (request.auth.type === 'api-key' && request.auth.apiKey?.key) {
+    const item = { key: request.auth.apiKey.key, value: request.auth.apiKey.value, enabled: true };
+    if (request.auth.apiKey.addTo === 'query') outgoingParams.push(item); else outgoingHeaders.push(item);
+  }
+
   const payload = {
     requestId,
     method: request.method,
     url: request.url,
-    headers: request.headers.filter(h => h.name !== '').map(h => ({ key: h.name, value: h.value, enabled: h.enabled })),
-    queryParams: request.urlParameters.filter(p => p.name !== '').map(p => ({ key: p.name, value: p.value, enabled: p.enabled })),
+    headers: outgoingHeaders,
+    queryParams: outgoingParams,
     bodyType: request.bodyType,
     body: request.body,
-    formData: request.formData.filter(f => f.name !== '').map(f => ({ key: f.name, value: f.value, enabled: f.enabled })),
+    formData: request.formData.filter(f => f.name !== '').map(f => ({ key: f.name, value: f.value, enabled: f.enabled, valueType: f.valueType ?? 'text', fileName: f.fileName ?? '' })),
     timeout: request.settings.timeout,
     followRedirects: request.settings.followRedirects,
     verifySSL: request.settings.verifySSL,
+    maxRedirects: request.settings.maxRedirects,
   };
 
   try {
@@ -430,6 +442,10 @@ async function fetchFallback(payload: any, signal: AbortSignal): Promise<Respons
         const params = new URLSearchParams();
         payload.formData.filter((f: any) => f.enabled && f.key).forEach((f: any) => params.append(f.key, f.value));
         init.body = params;
+      } else if (payload.bodyType === 'form-data') {
+        const data = new FormData();
+        payload.formData.filter((f: any) => f.enabled && f.key).forEach((f: any) => data.append(f.key, f.value));
+        init.body = data;
       }
     }
 

@@ -6,6 +6,7 @@
   import { request } from '../stores/app.svelte';
   import type { BodyType } from '../lib/types';
   import PairEditor from './core/PairEditor.svelte';
+  import FormDataEditor from './FormDataEditor.svelte';
 
   const bodyTypes: { id: BodyType; label: string }[] = [
     { id: 'none', label: 'None' },
@@ -14,13 +15,15 @@
     { id: 'xml', label: 'XML' },
     { id: 'form-urlencoded', label: 'Form' },
     { id: 'form-data', label: 'Multipart' },
+    { id: 'graphql', label: 'GraphQL' },
+    { id: 'binary', label: 'Binary' },
   ];
 
   let useCodeMirror = $state(false);
 
   // Only load CodeMirror for JSON/XML after a short delay (avoids blocking render)
   $effect(() => {
-    const needsCM = request.bodyType === 'json' || request.bodyType === 'xml';
+    const needsCM = request.bodyType === 'json' || request.bodyType === 'xml' || request.bodyType === 'graphql';
     if (needsCM && !useCodeMirror) {
       // Delay loading to avoid jank
       const t = setTimeout(() => { useCodeMirror = true; }, 100);
@@ -57,21 +60,32 @@
         <span class="text-text-subtle">No request body</span>
         <span class="text-xs">Choose a payload type above to add data.</span>
       </div>
-    {:else if request.bodyType === 'form-urlencoded' || request.bodyType === 'form-data'}
+    {:else if request.bodyType === 'form-data'}
+      <FormDataEditor pairs={request.formData} onchange={(p) => { request.formData = p; }} />
+    {:else if request.bodyType === 'form-urlencoded'}
       <PairEditor
         pairs={request.formData}
         namePlaceholder="Field"
         valuePlaceholder="Value"
         onchange={(p) => { request.formData = p; }}
       />
+    {:else if request.bodyType === 'binary'}
+      <div class="flex h-full items-center justify-center p-6">
+        <label class="flex w-full max-w-lg cursor-pointer flex-col items-center gap-3 rounded-xl border border-dashed border-border bg-surface-inset px-6 py-10 text-center hover:border-border-focus hover:bg-surface-highlight">
+          <span class="text-sm font-medium text-text">Choose a binary file</span>
+          <span class="text-xs text-text-subtlest">The desktop app sends the selected file as the complete request body.</span>
+          <span class="max-w-full truncate rounded bg-surface-active px-3 py-1.5 font-mono text-xs text-text-subtle">{request.body || 'No file selected'}</span>
+          <input type="file" class="sr-only" onchange={(e) => { const file = e.currentTarget.files?.[0] as (File & { path?: string }) | undefined; if (file) request.body = file.path ?? file.name; }} />
+        </label>
+      </div>
     {:else if useCodeMirror}
       <!-- CodeMirror for JSON/XML (lazy) -->
       {#await import('./core/CodeEditor.svelte') then { default: CodeEditor }}
         <CodeEditor
           value={request.body}
           onchange={(v) => { request.body = v; }}
-          language={request.bodyType === 'xml' ? 'xml' : 'json'}
-          placeholder={request.bodyType === 'json' ? '{\n  "key": "value"\n}' : '<root>\n  \n</root>'}
+          language={request.bodyType === 'xml' ? 'xml' : request.bodyType === 'graphql' ? 'javascript' : 'json'}
+          placeholder={request.bodyType === 'json' ? '{\n  "key": "value"\n}' : request.bodyType === 'graphql' ? 'query {\n  \n}' : '<root>\n  \n</root>'}
         />
       {/await}
     {:else}

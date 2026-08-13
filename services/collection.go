@@ -34,23 +34,25 @@ type RequestSettings struct {
 }
 
 type SavedRequest struct {
-	ID            string          `json:"id"`
-	WorkspaceID   string          `json:"workspaceId"`
-	FolderID      string          `json:"folderId,omitempty"`
-	Name          string          `json:"name"`
-	Method        string          `json:"method"`
-	URL           string          `json:"url"`
-	Headers       []Pair          `json:"headers"`
-	URLParameters []Pair          `json:"urlParameters"`
-	BodyType      string          `json:"bodyType"`
-	Body          string          `json:"body"`
-	FormData      []Pair          `json:"formData"`
-	Auth          AuthConfig      `json:"auth"`
-	Settings      RequestSettings `json:"settings"`
-	Description   string          `json:"description"`
-	SortOrder     int             `json:"sortOrder"`
-	CreatedAt     int64           `json:"createdAt"`
-	UpdatedAt     int64           `json:"updatedAt"`
+	ID                 string          `json:"id"`
+	WorkspaceID        string          `json:"workspaceId"`
+	FolderID           string          `json:"folderId,omitempty"`
+	Name               string          `json:"name"`
+	Method             string          `json:"method"`
+	URL                string          `json:"url"`
+	Headers            []Pair          `json:"headers"`
+	URLParameters      []Pair          `json:"urlParameters"`
+	BodyType           string          `json:"bodyType"`
+	Body               string          `json:"body"`
+	FormData           []Pair          `json:"formData"`
+	Auth               AuthConfig      `json:"auth"`
+	Settings           RequestSettings `json:"settings"`
+	Description        string          `json:"description"`
+	PreRequestScript   string          `json:"preRequestScript,omitempty"`
+	PostResponseScript string     `json:"postResponseScript,omitempty"`
+	SortOrder          int             `json:"sortOrder"`
+	CreatedAt          int64           `json:"createdAt"`
+	UpdatedAt          int64           `json:"updatedAt"`
 }
 
 type SavedResponse struct {

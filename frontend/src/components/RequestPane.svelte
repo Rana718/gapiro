@@ -11,6 +11,7 @@
   import BodyEditor from './BodyEditor.svelte';
   import AuthEditor from './AuthEditor.svelte';
   import SettingsEditor from './SettingsEditor.svelte';
+  import ScriptEditor from './ScriptEditor.svelte';
 
   interface Props {
     onSend: () => void;
@@ -24,10 +25,11 @@
   const authActive = $derived(request.auth.type !== 'none');
 
   const tabs = $derived([
-    { id: 'params', label: 'Query', badge: paramCount || undefined },
+    { id: 'params', label: 'Params', badge: paramCount || undefined },
+    { id: 'auth', label: 'Authorization', badge: authActive ? '•' : undefined },
     { id: 'headers', label: 'Headers', badge: headerCount || undefined },
-    { id: 'body', label: 'Body' },
-    { id: 'auth', label: 'Auth', badge: authActive ? '•' : undefined },
+    { id: 'body', label: 'Body', badge: request.bodyType !== 'none' ? '•' : undefined },
+    { id: 'scripts', label: 'Scripts' },
     { id: 'settings', label: 'Settings' },
   ]);
 
@@ -77,6 +79,8 @@
       />
     {:else if ui.activeRequestTab === 'auth'}
       <AuthEditor />
+    {:else if ui.activeRequestTab === 'scripts'}
+      <ScriptEditor />
     {:else if ui.activeRequestTab === 'settings'}
       <SettingsEditor />
     {/if}

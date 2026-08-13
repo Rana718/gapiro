@@ -106,6 +106,8 @@ export interface KeyValue {
     "key": string;
     "value": string;
     "enabled": boolean;
+    "valueType"?: string;
+    "fileName"?: string;
 }
 
 export interface Pair {
@@ -138,6 +140,7 @@ export interface RequestPayload {
     "timeout": number;
     "followRedirects": boolean;
     "verifySSL": boolean;
+    "maxRedirects": number;
 }
 
 export interface RequestSettings {
@@ -191,6 +194,8 @@ export interface SavedRequest {
     "auth": AuthConfig;
     "settings": RequestSettings;
     "description": string;
+    "preRequestScript"?: string;
+    "postResponseScript"?: string;
     "sortOrder": number;
     "createdAt": number;
     "updatedAt": number;

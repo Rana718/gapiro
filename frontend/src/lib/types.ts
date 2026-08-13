@@ -6,7 +6,7 @@ export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 
 
 export type BodyType = 'none' | 'json' | 'xml' | 'text' | 'form-urlencoded' | 'form-data' | 'graphql' | 'binary';
 
-export type RequestTab = 'body' | 'params' | 'headers' | 'auth' | 'settings' | 'description';
+export type RequestTab = 'body' | 'params' | 'headers' | 'auth' | 'scripts' | 'settings' | 'description';
 
 export type ResponseTab = 'body' | 'request' | 'headers' | 'cookies' | 'timeline' | 'info';
 
@@ -22,6 +22,8 @@ export interface Pair {
   value: string;
   enabled: boolean;
   readOnly?: boolean;
+  valueType?: 'text' | 'file';
+  fileName?: string;
 }
 
 export interface AuthConfig {
@@ -66,6 +68,8 @@ export interface RequestConfig {
   auth: AuthConfig;
   settings: RequestSettings;
   description: string;
+  preRequestScript?: string;
+  postResponseScript?: string;
   folderId?: string;
   graphql?: GraphQLConfig;
   grpc?: GrpcConfig;

@@ -24,9 +24,11 @@ type HttpService struct {
 
 // KeyValue represents a key-value pair for headers, params, form data.
 type KeyValue struct {
-	Key     string `json:"key"`
-	Value   string `json:"value"`
-	Enabled bool   `json:"enabled"`
+	Key       string `json:"key"`
+	Value     string `json:"value"`
+	Enabled   bool   `json:"enabled"`
+	ValueType string `json:"valueType,omitempty"`
+	FileName  string `json:"fileName,omitempty"`
 }
 
 // RequestPayload is the request configuration sent from the frontend.
@@ -42,6 +44,7 @@ type RequestPayload struct {
 	Timeout         int        `json:"timeout"` // seconds, 0 = no timeout
 	FollowRedirects bool       `json:"followRedirects"`
 	VerifySSL       bool       `json:"verifySSL"`
+	MaxRedirects    int        `json:"maxRedirects"`
 }
 
 // ResponsePayload is the response data sent back to the frontend.
@@ -133,7 +136,24 @@ func (h *HttpService) SendRequest(ctx context.Context, payload RequestPayload) R
 		writer := multipart.NewWriter(&buf)
 		for _, kv := range payload.FormData {
 			if kv.Enabled && kv.Key != "" {
-				_ = writer.WriteField(kv.Key, kv.Value)
+				if kv.ValueType == "file" {
+					file, err := os.Open(kv.Value)
+					if err != nil {
+						continue
+					}
+					name := kv.FileName
+					if name == "" {
+						parts := strings.Split(strings.ReplaceAll(kv.Value, "\\", "/"), "/")
+						name = parts[len(parts)-1]
+					}
+					part, err := writer.CreateFormFile(kv.Key, name)
+					if err == nil {
+						_, _ = io.Copy(part, file)
+					}
+					_ = file.Close()
+				} else {
+					_ = writer.WriteField(kv.Key, kv.Value)
+				}
 			}
 		}
 		writer.Close()
@@ -237,7 +257,11 @@ func (h *HttpService) SendRequest(ctx context.Context, payload RequestPayload) R
 	} else {
 		client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 			redirectCount = len(via)
-			if len(via) >= 10 {
+			maxRedirects := payload.MaxRedirects
+			if maxRedirects <= 0 {
+				maxRedirects = 10
+			}
+			if len(via) >= maxRedirects {
 				return fmt.Errorf("stopped after 10 redirects")
 			}
 			return nil
